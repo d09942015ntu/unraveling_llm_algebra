@@ -52,3 +52,15 @@ python3 vis_plot_convergence.py
 python3 vis_com_std.py
 python3 vis_ide_std.py
 ```
+
+## Inverse and Distributive
+
+```sh
+python3 dataset_generator_dist.py 
+python3 dataset_generator_inv.py 
+```
+
+```sh
+bash run_trainer_dist.sh
+bash run_trainer_inv.sh 
+```
