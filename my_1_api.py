@@ -97,7 +97,7 @@ def producer(queue, dataset, save_path, bar, create_prompt):
         #    print(f"Skip {data['index']}")
         #    continue
         prompt = create_prompt(data)
-        print("Loaded\t\t#", data['index'])
+        print(f"Loaded\t\t {i}, # {data['index']} ")
         data.update({"index": data["index"], "text": prompt})
         queue.put(data)
     print("Dataset Loaded.")
@@ -140,7 +140,7 @@ def consumer(queue, bar, model_name,
 def request_LLM(total, model_name, api_key, enable_multi_turn, split=0, dataset=None, save_path="",
                       create_prompt_fn=None, request_proxy=None, seed=0):
 
-    queue = queue_package.Queue(maxsize=120)
+    queue = queue_package.Queue()
 
     if dataset is None:
         return
@@ -202,9 +202,9 @@ def run(total=1,
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", type=str, default="qwen/qwen-2.5-7b-instruct")
-    parser.add_argument("--data_file", type=str, default="data/biggsm_samples/data.jsonl")
+    parser.add_argument("--data_file", type=str, default="data/biggsm/data.jsonl")
     parser.add_argument("--output_file", type=str, default="outputs/qwen_knowledge_4_noop.jsonl")
-    parser.add_argument("--knowledge_file", type=str, default="data/biggsm_samples/knowledge_4_noop.jsonl")
+    parser.add_argument("--knowledge_file", type=str, default="data/biggsm/knowledge_4_noop.jsonl")
     parser.add_argument("--api_key", type=str, default=f"{os.environ.get("OPENAI_API_KEY", '')}")
     parser.add_argument("--seed", type=int, default=0)
 
