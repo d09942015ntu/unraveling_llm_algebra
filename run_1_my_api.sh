@@ -5,7 +5,7 @@ types=(0_none 1_full 2_com 3_xop 4_noop)
 
 DEFAULT_SEED=1
 
-seed="${0:-$DEFAULT_SEED}"
+seed="${1:-$DEFAULT_SEED}"
 echo "seed=${seed}"
 for ttype in ${types[@]}; do
     python3 my_1_api.py \
