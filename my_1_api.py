@@ -61,19 +61,21 @@ class MMRequestor:
         #    max_output_tokens=512,
         #    #seed=12345,
         #)
+        try:
+            response = self.requestor.chat.completions.create(
+                model=self.model_name,  # Or any other model supported by OpenRouter
+                messages=[
+                    {"role": "user", "content": prompts},
+                ],
+                seed=self.seed,  # The seed parameter for reproducibility
+                temperature=0,  # Other optional parameters
+                max_tokens=512,
+            )
 
-        response = self.requestor.chat.completions.create(
-            model=self.model_name,  # Or any other model supported by OpenRouter
-            messages=[
-                {"role": "user", "content": prompts},
-            ],
-            seed=self.seed,  # The seed parameter for reproducibility
-            temperature=0,  # Other optional parameters
-            max_tokens=512,
-        )
-
-        #res_str = response.output[0].content[0].text
-        res_str = response.choices[0].message.content
+            #res_str = response.output[0].content[0].text
+            res_str = response.choices[0].message.content
+        except Exception as e:
+            res_str = f"Error: {e}"
         return res_str
 
 
