@@ -126,9 +126,9 @@ class RequestOutput:
         return judge_error(pred) and abs(abs(round(float(pred), 2)) - abs(round(golden_answer, 2))) < 0.01
     
     def __extract_math_answer__(self, idx, response_data):
-        pred_str = [s for s in [""] + re.findall(r'\$(.*?)\$', response_data.get_last_pred_text(idx).replace("\$", "").replace("$$", "$"))][-1].replace("$", "")
+        pred_str = [s for s in [""] + re.findall(r'\$(.*?)\$', response_data.get_pred_text(idx).replace("\$", "").replace("$$", "$"))][-1].replace("$", "")
         if pred_str == "":
-            pred_str = [s for s in [""] + re.findall(r'\\\((.*?)\\\)', response_data.get_last_pred_text(idx))][-1].replace("\(", "").replace("\)", "")
+            pred_str = [s for s in [""] + re.findall(r'\\\((.*?)\\\)', response_data.get_pred_text(idx))][-1].replace("\(", "").replace("\)", "")
         return pred_str
 
     def judge_math_correct(self, idx, mode="nl"):
@@ -169,7 +169,7 @@ class RequestOutput:
         ALPHA_MAP = ["A", "B", "C", "D", "E", "F"]
         
         choices = response_data.get_origin_input(idx)["choices"]
-        text = response_data.get_last_pred_text(idx)
+        text = response_data.get_pred_text(idx)
         if "[Answer]" in text:
             text = text.split("[Answer]")[-1].split("[Rationale]")[0].split("[Context]")[0]
         pattern = re.compile(r'\(([A-Za-z])\)')
