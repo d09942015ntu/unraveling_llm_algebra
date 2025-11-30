@@ -13,6 +13,7 @@ import random
 import numpy as np
 from openai import OpenAI
 import queue as queue_package
+import argparse
 
 
 
@@ -86,7 +87,7 @@ def get_parsed_pred_answer(data):
             return -1
         return last_var
 
-def judge_correct(data):
+def judge_correct(data, idx):
     golden_answer_str = get_origin_input(data)["answer"].replace(",", "").strip(".").split("\n#### ")[-1]
     golden_answer = round(float(golden_answer_str), 2)
     pred = get_parsed_pred_answer(data)
@@ -97,6 +98,9 @@ def judge_correct(data):
     origin_answer_json = get_origin_input(data)
     pred_str = get_pred_text(data)
     print("--------------------------")
+    print(f"# question_idx: {idx}\n")
+    print(f"# origin_text:\n{origin_answer_json["text"]}\n")
+    print("-------------")
     print(f"# origin_question:\n{origin_answer_json["question"]}\n")
     print("-------------")
     print(f"# origin_ans:\n{origin_answer_json["answer"]}\n")
@@ -109,12 +113,15 @@ def judge_correct(data):
     return correct
 
 def run():
-    input_file = "test/qwen-2.5-7b-instruct.jsonl"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_file", type=str, help="input json file", default="test/qwen-2.5-7b-instruct.jsonl")
+    args = parser.parse_args()
+
     total_correct = []
-    with open(input_file, "r") as f:
+    with open(args.input_file, "r") as f:
         for idx, line in enumerate(f.readlines()):
             json_data = json.loads(line)
-            correct = judge_correct(json_data)
+            correct = judge_correct(json_data, idx)
             total_correct.append(correct)
     print(f"averaged_correct:{np.average(total_correct)}")
 
