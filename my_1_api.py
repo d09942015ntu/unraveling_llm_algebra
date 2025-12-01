@@ -209,6 +209,7 @@ def run(total=1,
     parser.add_argument("--seed", type=int, default=0)
 
     args = parser.parse_args()
+    print(args)
     model_name = args.model_name
     data_file = args.data_file
     knowledge_file = args.knowledge_file
