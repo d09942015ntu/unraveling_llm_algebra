@@ -1,7 +1,7 @@
 source venv/bin/activate
 
 mkdir -p outputs_eval
-types=(0_none 1_full 2_com 3_xop 4_noop)
+types=(0_none 1_full 2_com 5_xop 4_noop)
 
 for seed in $(seq 0 1); do
   for ttype in ${types[@]}; do
@@ -22,7 +22,7 @@ done
 #0.89672131147541
 #2_com
 #0.86994535519126
-#3_xop
+#5_xop
 #0.72404371584699
 #4_noop
 #0.81803278688525

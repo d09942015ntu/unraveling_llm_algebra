@@ -182,8 +182,11 @@ class DataLoader:
             input_data[data["index"]] = data
 
         if os.path.exists(knowledge_path):
+            print(f"loading knowledge:{knowledge_path}")
             for i, data in enumerate(read_jsonl(knowledge_path)):
                 input_data[data["index"]]["knowledge"] = data["knowledge"]
+        else:
+            print(f"knowledge not found:{knowledge_path}")
         self.data = list(input_data.values())
 
 

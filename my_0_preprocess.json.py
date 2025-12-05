@@ -31,8 +31,8 @@ def process_file(
         with all normalized equations joined by newlines.
     """
 
-    #knowledge_types = ["1_full", "2_com", "3_xop", "4_noop", "41_noop"]
-    knowledge_types = ["41_noop"]
+    #knowledge_types = ["1_full", "2_com", "5_xop", "4_noop", "41_noop"]
+    knowledge_types = ["3_ide"]
 
     knowledge_dir = os.path.dirname(in_path)
     fouts = dict([(k,open(knowledge_dir + "/" + f"knowledge_{k}.jsonl", "w", encoding="utf-8") ) for k in knowledge_types])
@@ -67,7 +67,7 @@ def process_file(
                 if knowledge_type == "1_full":
                     normalized_eqs_new = [x for x in normalized_eqs]
                     pass
-                elif knowledge_type in ["2_com", "3_xop", "4_noop", "41_noop"]:
+                elif knowledge_type in ["2_com", "5_xop", "4_noop", "41_noop", "3_ide"]:
                     normalized_eqs_new = []
                     for idx,normalized_eq in enumerate(normalized_eqs):
                         if "=" in normalized_eq and ("+" in normalized_eq or "*" in normalized_eq):
@@ -77,12 +77,15 @@ def process_file(
                                 ops = list(reversed(ops))
                                 if knowledge_type == "2_com":
                                     normalized_eqs_new.append(f"{'+'.join(ops)}={right_side}")
-                                elif knowledge_type == "3_xop":
+                                elif knowledge_type == "5_xop":
                                     normalized_eqs_new.append(f"{'*'.join(ops)}={right_side}")
                                 elif knowledge_type == "4_noop":
                                     normalized_eqs_new.append(f"{','.join(ops)}={right_side}")
                                 elif knowledge_type == "41_noop":
                                     normalized_eqs_new.append(f"({','.join(ops)})->{right_side}")
+                                elif knowledge_type == "3_ide":
+                                    ops = list(reversed(ops))
+                                    normalized_eqs_new.append(f"{'+0+'.join(ops)}={right_side}")
                                 else:
                                     assert 0, f"unknown knowledge type {knowledge_type}"
                             elif "*" in normalized_eq:
@@ -90,12 +93,15 @@ def process_file(
                                 ops = list(reversed(ops))
                                 if knowledge_type == "2_com":
                                     normalized_eqs_new.append(f"{'*'.join(ops)}={right_side}")
-                                elif knowledge_type == "3_xop":
+                                elif knowledge_type == "5_xop":
                                     normalized_eqs_new.append(f"{'+'.join(ops)}={right_side}")
                                 elif knowledge_type == "4_noop":
                                     normalized_eqs_new.append(f"{','.join(ops)}={right_side}")
                                 elif knowledge_type == "41_noop":
                                     normalized_eqs_new.append(f"({','.join(ops)})->{right_side}")
+                                elif knowledge_type == "3_ide":
+                                    ops = list(reversed(ops))
+                                    normalized_eqs_new.append(f"{'*1*'.join(ops)}={right_side}")
                                 else:
                                     assert 0, f"unknown knowledge type {knowledge_type}"
                             else:

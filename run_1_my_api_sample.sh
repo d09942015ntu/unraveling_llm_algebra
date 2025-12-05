@@ -1,7 +1,7 @@
 source venv/bin/activate
 
 mkdir -p outputs_eval
-types=(0_none 1_full 2_com 3_xop 4_noop)
+types=(0_none 1_full 2_com 5_xop 4_noop)
 
 DEFAULT_SEED=1
 
