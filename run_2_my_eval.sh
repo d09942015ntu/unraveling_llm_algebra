@@ -12,20 +12,23 @@ seed=0
 #meta-llama/llama-3.1-8b-instruct
 #meta-llama/llama-3.1-70b-instruct
 
-model_tag="qwen7b"
+model_tag="qwen72b"
 
+model_tags=(qwen7b qwen72b llama8b llama70b)
 
-#for seed in $(seq 0 2); do
-  for ttype in ${types[@]}; do
-      python3 my_2_eval.py --input_file=outputs/${model_tag}_knowledge_${ttype}_${seed}.jsonl > outputs_eval/${model_tag}_eval_${ttype}_${seed}.txt
-  done
-#done
+for model_tag in ${model_tags[@]};do
+    for seed in $(seq 0 2); do
+      for ttype in ${types[@]}; do
+          python3 my_2_eval.py --input_file=outputs/${model_tag}_knowledge_${ttype}_${seed}.jsonl > outputs_eval/${model_tag}_eval_${ttype}_${seed}.txt
+      done
+    done
 
-for ttype in ${types[@]}; do
-  echo "${ttype}"
-  grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash mean 1
+    for ttype in ${types[@]}; do
+      echo "${model_tag}-${ttype}"
+      grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash mean 1
+    done
+    echo ""
 done
-
 
 # Qwen7b
 #0_none
