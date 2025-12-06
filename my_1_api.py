@@ -97,7 +97,7 @@ def producer(queue, dataset, save_path, bar, create_prompt):
         #    print(f"Skip {data['index']}")
         #    continue
         prompt = create_prompt(data)
-        print(f"Loaded\t\t {i}, # {data['index']} ")
+        #print(f"Loaded\t\t {i}, # {data['index']} ")
         data.update({"index": data["index"], "text": prompt})
         queue.put(data)
     print("Dataset Loaded.")
