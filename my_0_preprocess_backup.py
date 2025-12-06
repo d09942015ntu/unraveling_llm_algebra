@@ -31,7 +31,7 @@ def gen_eq_common(operands, knowledge_type):
                     eq = f"{'*1*'.join(ops)}"
             else:
                 eq = f"{operator.join(ops)}"
-            print(f"ops:{ops}, eq:{eq}")
+            #print(f"ops:{ops}, eq:{eq}")
             result = eval(eq)
             normalize_equations.append(f"{eq}={result}")
             results.append(str(result) if result >=0 else f"({str(result)})")
@@ -57,7 +57,7 @@ def gen_noisy_eqs(operands, knowledge_type, rng):
 
     ops_set = set()
     if len(result_new) > 0:
-        print(f"result_new:{result_new}, operand_flatten:{operand_flatten}")
+        #print(f"result_new:{result_new}, operand_flatten:{operand_flatten}")
         for _ in range(len(operand_flatten)*2):
             if 'com' in knowledge_type:
                 op0 = rng.choice(result_new,1)[0]
@@ -87,8 +87,8 @@ def process_file(
     """
 
     #knowledge_types = ["1_full", "2_com", "5_xop", "4_noop", "41_noop"]
-    #knowledge_types = ["1_full", "2_com", "3_ide", "11_fullN", "22_comN", "31_ideN", "4_noop", "41_noop", "5_xop"]
-    knowledge_types = ["22_comN"]
+    knowledge_types = ["1_full", "2_com", "3_ide", "11_fullN", "21_comN", "31_ideN", "4_noop", "41_noop", "5_xop"]
+    #knowledge_types = ["11_fullN","21_comN", "31_ideN"]
 
     knowledge_dir = os.path.dirname(in_path)
     fouts = dict([(k,open(knowledge_dir + "/" + f"knowledge_{k}.jsonl", "w", encoding="utf-8") ) for k in knowledge_types])
@@ -143,7 +143,7 @@ def process_file(
                                 elif knowledge_type == "3_ide":
                                     ops = list(reversed(ops))
                                     normalized_eqs_new.append(f"{'+0+'.join(ops)}={right_side}")
-                                elif knowledge_type == "11_fullN" or knowledge_type == "22_comN" or knowledge_type == "31_ideN":
+                                elif knowledge_type == "11_fullN" or knowledge_type == "21_comN" or knowledge_type == "31_ideN":
                                     if knowledge_type == "11_fullN" or knowledge_type == "31_ideN":
                                         ops = list(reversed(ops))
                                     normalized_eqs_new.append(ops)
@@ -163,7 +163,7 @@ def process_file(
                                 elif knowledge_type == "3_ide":
                                     ops = list(reversed(ops))
                                     normalized_eqs_new.append(f"{'*1*'.join(ops)}={right_side}")
-                                elif knowledge_type == "11_fullN" or knowledge_type == "22_comN" or knowledge_type == "31_ideN":
+                                elif knowledge_type == "11_fullN" or knowledge_type == "21_comN" or knowledge_type == "31_ideN":
                                     if knowledge_type == "11_fullN" or knowledge_type == "31_ideN":
                                         ops = list(reversed(ops))
                                     normalized_eqs_new.append(ops)
@@ -172,16 +172,17 @@ def process_file(
                             else:
                                 assert 0, f"unknown operator"
                         else:
-                            if knowledge_type != "22_comN" and knowledge_type != "31_ideN":
+                            if knowledge_type != "21_comN" and knowledge_type != "31_ideN":
                                 normalized_eqs_new.append(normalized_eq)
 
-                if knowledge_type == "11_fullN" or knowledge_type == "22_comN" or knowledge_type == "31_ideN":
+                if knowledge_type == "11_fullN" or knowledge_type == "21_comN" or knowledge_type == "31_ideN":
                     normalized_eqs_new = gen_noisy_eqs(normalized_eqs_new, knowledge_type, rng)
-                    if knowledge_type == "22_comN":
+                    if knowledge_type == "21_comN":
                         for eq in normalized_eqs:
                             if eq in normalized_eqs_new:
+                                #print(f"remove:{eq}")
                                 normalized_eqs_new.remove(eq)
-                    normalized_eqs_new = list(set(normalized_eqs_new))
+
 
                 knowledge_str = "\n".join(normalized_eqs_new)
                 know_obj = {

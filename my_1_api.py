@@ -201,14 +201,14 @@ def run(total=1,
         split=0,
         request_proxy="https://openrouter.ai/api/v1",  # base_url; None means OpenAI base_url by default
         ):
-    print(f"api_key = {os.environ.get("OPENAI_API_KEY", '')}")
+    print(f"api_key = {os.environ.get('OPENAI_API_KEY', '')}")
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", type=str, default="qwen/qwen-2.5-7b-instruct")
     parser.add_argument("--data_file", type=str, default="data/biggsm/data.jsonl")
     parser.add_argument("--output_file", type=str, default="outputs/qwen_knowledge_4_noop.jsonl")
     parser.add_argument("--knowledge_file", type=str, default="data/biggsm/knowledge_4_noop.jsonl")
-    parser.add_argument("--api_key", type=str, default=f"{os.environ.get("OPENAI_API_KEY", '')}")
+    parser.add_argument("--api_key", type=str, default=f"{os.environ.get('OPENAI_API_KEY', '')}")
     parser.add_argument("--seed", type=int, default=0)
 
     args = parser.parse_args()
