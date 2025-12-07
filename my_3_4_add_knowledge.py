@@ -60,6 +60,7 @@ def gen_knowledge(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         knowledge_file_bw.write("\n")
 
         knowledge = []
+        eq = list(reversed(eq))
         eq_str = f"{op}".join(eq)
         result = eval(eq_str)
         result = round(result, 2)
