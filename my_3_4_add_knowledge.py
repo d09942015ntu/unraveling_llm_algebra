@@ -7,6 +7,7 @@ def process_file(input_file):
     input_dir = os.path.dirname(input_file)
     knowledge_file_fw = open(os.path.join(input_dir, "knowledge_1_fw.jsonl"), "w")
     knowledge_file_bw = open(os.path.join(input_dir, "knowledge_2_bw.jsonl"), "w")
+    knowledge_file_full = open(os.path.join(input_dir, "knowledge_3_full.jsonl"), "w")
 
     data_file = open(os.path.join(input_dir, "data.jsonl"), "w")
     for line in open(input_file,"r").readlines():
@@ -44,8 +45,6 @@ def process_file(input_file):
         json.dump({"knowledge":knowledge_str,"index":item["index"]},knowledge_file_fw)
         knowledge_file_fw.write("\n")
 
-
-
         eq = list(reversed(eq))
         eq0 = eq[0]
         knowledge = []
@@ -57,6 +56,14 @@ def process_file(input_file):
         knowledge_str = "\n".join(knowledge)
         json.dump({"knowledge":knowledge_str,"index":item["index"]},knowledge_file_bw)
         knowledge_file_bw.write("\n")
+
+        knowledge = []
+        eq_str = f"{op}".join(eq)
+        result = eval(eq_str)
+        knowledge.append(f"{eq_str}={result}")
+        knowledge_str = "\n".join(knowledge)
+        json.dump({"knowledge":knowledge_str,"index":item["index"]},knowledge_file_full)
+        knowledge_file_full.write("\n")
 
 if __name__ == "__main__":
     process_file("./data/MAWPS/data_raw_f2.jsonl")
