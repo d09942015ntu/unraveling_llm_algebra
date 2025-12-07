@@ -50,7 +50,7 @@ def process_file(input_file):
         eq0 = eq[0]
         knowledge = []
         for eq1 in eq[1:]:
-            eq_str = f"{eq0}{op}{eq1}"
+            eq_str = f"{eq1}{op}{eq0}"
             result = eval(eq_str)
             knowledge.append(f"{eq_str}={result}")
             eq0 = result
