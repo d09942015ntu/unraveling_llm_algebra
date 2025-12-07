@@ -63,7 +63,7 @@ def recompute_rhs(lhs_expr: str) -> str:
         return s
     return str(value)
 
-def inner_loop(input_csv, f_out, operator):
+def inner_loop(input_csv, f_out, operator, index_offset=0):
     with open(input_csv, newline="", encoding="utf-8") as f_in:
         reader = csv.DictReader(f_in)
         for i, row in enumerate(reader):
@@ -86,9 +86,11 @@ def inner_loop(input_csv, f_out, operator):
             record = {
                 "question": q_new,
                 "answer": ans_new,
-                "index": str(i),
+                "index": str(i+index_offset),
             }
+            index_offset += 1
             f_out.write(json.dumps(record, ensure_ascii=False) + "\n")
+    return index_offset
 
 
 def process_file(input_csv: str, output_jsonl: str):
@@ -109,9 +111,9 @@ def process_file(input_csv: str, output_jsonl: str):
                 operator_mult += 1
 
     with open(output_jsonl, "w", encoding="utf-8") as f_out:
-        inner_loop(input_csv, f_out, '+')
+        index_offset = inner_loop(input_csv, f_out, '+')
         for _ in range(int(math.ceil(operator_add/operator_mult))):
-            inner_loop(input_csv, f_out, '*')
+            index_offset = inner_loop(input_csv, f_out, '*', index_offset)
 
     print(f"Wrote transformed data to {output_jsonl}")
 
