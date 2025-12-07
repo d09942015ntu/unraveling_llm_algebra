@@ -3,7 +3,7 @@ import json
 import os.path
 import re
 
-def process_file(input_file):
+def gen_knowledge(input_file="./data/MAWPS/data_raw_f2.jsonl"):
     input_dir = os.path.dirname(input_file)
     knowledge_file_fw = open(os.path.join(input_dir, "knowledge_1_fw.jsonl"), "w")
     knowledge_file_bw = open(os.path.join(input_dir, "knowledge_2_bw.jsonl"), "w")
@@ -39,6 +39,7 @@ def process_file(input_file):
         for eq1 in eq[1:]:
             eq_str = f"{eq0}{op}{eq1}"
             result = eval(eq_str)
+            result = round(result, 2)
             knowledge.append(f"{eq_str}={result}")
             eq0 = result
         knowledge_str = "\n".join(knowledge)
@@ -51,6 +52,7 @@ def process_file(input_file):
         for eq1 in eq[1:]:
             eq_str = f"{eq1}{op}{eq0}"
             result = eval(eq_str)
+            result = round(result, 2)
             knowledge.append(f"{eq_str}={result}")
             eq0 = result
         knowledge_str = "\n".join(knowledge)
@@ -60,10 +62,11 @@ def process_file(input_file):
         knowledge = []
         eq_str = f"{op}".join(eq)
         result = eval(eq_str)
+        result = round(result, 2)
         knowledge.append(f"{eq_str}={result}")
         knowledge_str = "\n".join(knowledge)
         json.dump({"knowledge":knowledge_str,"index":item["index"]},knowledge_file_full)
         knowledge_file_full.write("\n")
 
 if __name__ == "__main__":
-    process_file("./data/MAWPS/data_raw_f2.jsonl")
+    gen_knowledge("./data/MAWPS/data_raw_f2.jsonl")
