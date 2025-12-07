@@ -1,90 +1,62 @@
 import csv
 import json
+import os.path
 import re
 
-# Regex to capture numbers: decimals first, then integers
-NUM_RE = re.compile(r'\d+\.\d+|\d+')
+def process_file(input_file):
+    input_dir = os.path.dirname(input_file)
+    knowledge_file_fw = open(os.path.join(input_dir, "knowledge_1_fw.jsonl"), "w")
+    knowledge_file_bw = open(os.path.join(input_dir, "knowledge_2_bw.jsonl"), "w")
 
-def map_integer(s: str) -> str:
-    """Map an integer string to a larger integer."""
-    n = int(s)
-    new_n = n * 1000 + 123
-    return str(new_n)
+    data_file = open(os.path.join(input_dir, "data.jsonl"), "w")
+    for line in open(input_file,"r").readlines():
+        #print(f"processing:{line}")
+        item = json.loads(line)
+        eq = item['answer'].split("=")[0]
+        eq = eq.replace(")","").replace("(","")
+        cond_or1 = ("+" in eq and "*" not in eq)
+        cond_or2 = ("+" not in eq and "*" in eq)
+        #cond_and1 = ("(" not in eq)
+        #cond_and2 = (")" not in eq)
+        cond_and3 = ("/" not in eq)
+        cond_and4 = ("-" not in eq)
+        if not((cond_or1 or cond_or2) and cond_and3 and cond_and4):
+            print(f"not exist:{item['answer']}")
+            continue
+        data_file.write(line)
+        op = ""
+        if "+" in eq:
+            eq = eq.split("+")
+            op = "+"
+        elif "*" in eq:
+            eq = eq.split("*")
+            op = "*"
 
-def map_decimal(s: str) -> str:
-    """Map a decimal string to a 4-decimal-place number."""
-    x = float(s)
-    new_x = x + 0.1234
-    return f"{new_x:.4f}"
+        eq = [x.strip() for x in eq]
+        eq0 = eq[0]
+        knowledge = []
+        for eq1 in eq[1:]:
+            eq_str = f"{eq0}{op}{eq1}"
+            result = eval(eq_str)
+            knowledge.append(f"{eq_str}={result}")
+            eq0 = result
+        knowledge_str = "\n".join(knowledge)
+        json.dump({"knowledge":knowledge_str,"index":item["index"]},knowledge_file_fw)
+        knowledge_file_fw.write("\n")
 
-def build_number_map(question: str, lhs_expr: str):
-    """
-    Build a mapping from original numeric strings to new numeric strings.
-    """
-    mapping = {}
-    all_nums = set(NUM_RE.findall(question) + NUM_RE.findall(lhs_expr))
 
-    for num in all_nums:
-        if '.' in num:
-            mapping[num] = map_decimal(num)
-        else:
-            mapping[num] = map_integer(num)
 
-    return mapping
-
-def replace_numbers(text: str, mapping: dict) -> str:
-    """Replace numbers in text according to mapping."""
-    def repl(match):
-        s = match.group(0)
-        return mapping.get(s, s)
-    return NUM_RE.sub(repl, text)
-
-def recompute_rhs(lhs_expr: str) -> str:
-    """Recompute RHS after modifying LHS."""
-    lhs_part = lhs_expr.split('=')[0].strip()
-    try:
-        value = eval(lhs_part, {"__builtins__": None}, {})
-    except Exception as e:
-        raise RuntimeError(f"Error evaluating: {lhs_part}") from e
-
-    if isinstance(value, float):
-        if abs(value - round(value)) < 1e-9:
-            return str(int(round(value)))
-        s = f"{value:.4f}"
-        s = s.rstrip("0").rstrip(".")
-        return s
-    return str(value)
-
-def process_file(input_csv: str, output_jsonl: str):
-    with open(input_csv, newline="", encoding="utf-8") as f_in:
-        reader = csv.DictReader(f_in)
-
-        with open(output_jsonl, "w", encoding="utf-8") as f_out:
-            for i, row in enumerate(reader):
-                q = row["question"]
-                ans = row["answer"]
-
-                expr_part = ans.split("####")[0].strip()
-                lhs_raw = expr_part.split("=")[0].strip()
-
-                mapping = build_number_map(q, lhs_raw)
-
-                q_new = replace_numbers(q, mapping)
-                lhs_new = replace_numbers(lhs_raw, mapping)
-
-                rhs_new = recompute_rhs(lhs_new)
-
-                ans_new = f"{lhs_new} = {rhs_new} #### {rhs_new}"
-
-                record = {
-                    "question": q_new,
-                    "answer": ans_new,
-                    "index": str(i),
-                }
-                f_out.write(json.dumps(record, ensure_ascii=False) + "\n")
-
-    print(f"Wrote transformed data to {output_jsonl}")
-
+        eq = list(reversed(eq))
+        eq0 = eq[0]
+        knowledge = []
+        for eq1 in eq[1:]:
+            eq_str = f"{eq0}{op}{eq1}"
+            result = eval(eq_str)
+            knowledge.append(f"{eq_str}={result}")
+            eq0 = result
+        knowledge_str = "\n".join(knowledge)
+        json.dump({"knowledge":knowledge_str,"index":item["index"]},knowledge_file_bw)
+        knowledge_file_bw.write("\n")
 
 if __name__ == "__main__":
-    process_file("./data/MAWPS/data_raw_filtered.csv", "./data/MAWPS/data.jsonl")
+    process_file("./data/MAWPS/data_raw_f2.jsonl")

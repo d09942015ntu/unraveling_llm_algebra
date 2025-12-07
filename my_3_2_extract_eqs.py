@@ -2,6 +2,7 @@ import csv
 import re
 
 OPS = ["+", "-", "*", "/"]
+#OPS = ["+", "*"]
 
 def extract_expr(answer):
     # Get text before "####"
@@ -37,8 +38,8 @@ def qualifies(expr):
 # Main processing
 # --------------------------
 
-input_file = "data/MAWPS/data_all_questions.csv"
-output_file = "data/MAWPS/data_filtered.csv"
+input_file = "data/MAWPS/data_raw_all.csv"
+output_file = "data/MAWPS/data_raw_filtered.csv"
 
 kept_rows = []
 

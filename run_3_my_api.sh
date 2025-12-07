@@ -1,7 +1,7 @@
 source venv/bin/activate
 
 mkdir -p outputs_eval
-types=(0_none) # 1_full 2_com 3_ide 11_fullN 21_comN 31_ideN)
+types=(1_fw 2_bw 0_none) # 1_full 2_com 3_ide 11_fullN 21_comN 31_ideN)
 
 DEFAULT_SEED=0
 

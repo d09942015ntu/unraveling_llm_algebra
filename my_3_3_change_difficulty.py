@@ -87,4 +87,4 @@ def process_file(input_csv: str, output_jsonl: str):
 
 
 if __name__ == "__main__":
-    process_file("./data/MAWPS/data_raw_filtered.csv", "./data/MAWPS/data.jsonl")
+    process_file("./data/MAWPS/data_raw_filtered.csv", "./data/MAWPS/data_raw_f2.jsonl")
