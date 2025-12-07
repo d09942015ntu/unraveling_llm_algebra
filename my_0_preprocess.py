@@ -88,7 +88,7 @@ def process_file(
 
     #knowledge_types = ["1_full", "2_com", "5_xop", "4_noop", "41_noop"]
     #knowledge_types = ["1_full", "2_com", "3_ide", "11_fullN", "22_comN", "31_ideN", "4_noop", "41_noop", "5_xop"]
-    knowledge_types = ["22_comN"]
+    knowledge_types = ["12_fullN" "22_comN"]
 
     knowledge_dir = os.path.dirname(in_path)
     fouts = dict([(k,open(knowledge_dir + "/" + f"knowledge_{k}.jsonl", "w", encoding="utf-8") ) for k in knowledge_types])
