@@ -88,7 +88,7 @@ def get_parsed_pred_answer(data):
         return last_var
 
 def judge_correct(data, idx):
-    golden_answer_str = get_origin_input(data)["answer"].replace(",", "").strip(".").split("\n#### ")[-1]
+    golden_answer_str = get_origin_input(data)["answer"].replace(",", "").strip(".").split("#### ")[-1]
     golden_answer = round(float(golden_answer_str), 2)
     pred = get_parsed_pred_answer(data)
 
