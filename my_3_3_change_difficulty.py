@@ -18,10 +18,12 @@ def map_integer(s: str, scale=1000) -> str:
     new_n = n * scale + RNG.randint(scale,scale*5)
     return str(new_n)
 
-def map_decimal(s: str) -> str:
+def map_decimal(s: str, to_int=True, scale=5) -> str:
     """Map a decimal string to a 2-decimal-place number."""
     x = float(s)
-    new_x = round(x*100) + RNG.randint(100,500)
+    new_x = x * scale + RNG.randint(scale,scale*5)
+    if to_int:
+        new_x = round(new_x)
     return f"{new_x}"
 
 def build_number_map(question: str, lhs_expr: str):
@@ -35,13 +37,16 @@ def build_number_map(question: str, lhs_expr: str):
 
     for num in all_nums:
         if '.' in num:
-            mapping[num] = map_decimal(num)
+            if '*' in lhs_expr:
+                mapping[num] = map_decimal(num, to_int=True, scale=5)
+            else:
+                mapping[num] = map_decimal(num, to_int=False, scale=1024)
         else:
             if '*' in lhs_expr:
-                mapping[num] = map_integer(num, scale=2)
+                mapping[num] = map_integer(num, scale=5)
             else:
-                mapping[num] = map_integer(num, scale=10000)
-
+                mapping[num] = map_integer(num, scale=100000)
+    print(f"mapping:{mapping}")
     return mapping
 
 def replace_numbers(text: str, mapping: dict) -> str:
@@ -123,6 +128,6 @@ def process_file(input_csv: str, output_jsonl: str):
 
 
 if __name__ == "__main__":
-    process_file("./data/MAWPS/data_raw_filtered_edited.csv", "./data/MAWPS/data_raw_f2.jsonl")
-    gen_knowledge("./data/MAWPS/data_raw_f2.jsonl")
-    gen_knowledge_N("./data/MAWPS/data_raw_f2.jsonl")
+    process_file("./data/MAWPS/data_raw_filtered_edited.csv", f"./data/MAWPS/set_1{SEED}/data_raw_f2.jsonl")
+    gen_knowledge(f"./data/MAWPS/set_1{SEED}/data_raw_f2.jsonl")
+    gen_knowledge_N(f"./data/MAWPS/set_1{SEED}/data_raw_f2.jsonl")

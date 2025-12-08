@@ -102,7 +102,7 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
 
             for op_temp in ['+', '*']:
                 eq0_temp = eq0
-                for eq_temp in [eq1, eq0_old, eq1, eq0_old]:
+                for eq_temp in RNG.permutation([eq1, eq0_old, eq1, eq0_old, eq1, eq0_old, eq1, eq0_old, eq1, eq0_old]):
                     eq_str_temp = f"{eq0_temp}{op_temp}{eq_temp}"
                     result_temp = eval_result(eq_str_temp)
                     knowledge.append(f"{eq_str_temp}={result_temp}")
@@ -130,7 +130,7 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
 
             for op_temp in ['+', '*']:
                 eq0_temp = eq0
-                for eq_temp in [eq1, eq0_old, eq1, eq0_old]:
+                for eq_temp in RNG.permutation([eq1, eq0_old, eq1, eq0_old, eq1, eq0_old, eq1, eq0_old, eq1, eq0_old]):
                     eq_str_temp = f"{eq_temp}{op_temp}{eq0_temp}"
                     result_temp = eval_result(eq_str_temp)
                     knowledge.append(f"{eq_str_temp}={result_temp}")
@@ -146,7 +146,6 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
 
 
         #------------- 31_fullN -------------
-
         knowledge_fwN= knowledge_fwN[:int(len(knowledge_fwN)/2)]
         knowledge_bwN= knowledge_bwN[:int(len(knowledge_bwN)/2)]
         knowledge_fullN = knowledge_fwN + knowledge_bwN + knowledge_full
