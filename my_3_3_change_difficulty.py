@@ -26,7 +26,7 @@ def build_number_map(question: str, lhs_expr: str):
     Build a mapping from original numeric strings to new numeric strings.
     """
     mapping = {}
-    all_nums = set(NUM_RE.findall(question) + NUM_RE.findall(lhs_expr))
+    all_nums = set(NUM_RE.findall(question)) # + NUM_RE.findall(lhs_expr))
     print(f"lhs_expr:{lhs_expr}")
 
     for num in all_nums:
@@ -119,5 +119,5 @@ def process_file(input_csv: str, output_jsonl: str):
 
 
 if __name__ == "__main__":
-    process_file("./data/MAWPS/data_raw_filtered.csv", "./data/MAWPS/data_raw_f2.jsonl")
+    process_file("./data/MAWPS/data_raw_filtered_edited.csv", "./data/MAWPS/data_raw_f2.jsonl")
     gen_knowledge("./data/MAWPS/data_raw_f2.jsonl")
