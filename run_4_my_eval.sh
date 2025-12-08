@@ -1,7 +1,7 @@
 source venv/bin/activate
 
 mkdir -p outputs_eval
-types=(0_none) # 1_full 2_com 3_ide)
+types=(0_none 1_fw 2_bw 3_full 11_fwN 21_bwN 31_fullN) #2_com 3_ide)
 
 #types=(0_none) # 1_full 2_com 5_xop 4_noop)
 
@@ -14,10 +14,10 @@ seed=0
 
 model_tag="qwen7b"
 
-model_tags=(qwen7b) # qwen72b llama8b llama70b)
+model_tags=(qwen7b qwen72b) #llama8b llama70b)
 
 for model_tag in ${model_tags[@]};do
-    for seed in $(seq 0 0); do
+    for seed in $(seq 0 2); do
       for ttype in ${types[@]}; do
           python3 my_2_eval.py --input_file=outputs/${model_tag}_MAWPS_${ttype}_${seed}.jsonl > outputs_eval/${model_tag}_MAWPS_eval_${ttype}_${seed}.txt
       done
@@ -25,7 +25,9 @@ for model_tag in ${model_tags[@]};do
 
     for ttype in ${types[@]}; do
       echo "${model_tag}-${ttype}"
-      grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_MAWPS_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash mean 1
+      t_mean=$(grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_MAWPS_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash mean 1)
+      t_var=$(grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_MAWPS_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash pvar 1)
+      echo "${t_mean}-${t_var}"
     done
     echo ""
 done
