@@ -4,10 +4,13 @@ import re
 import numpy as np
 import math
 from my_3_4_add_knowledge import gen_knowledge
+from my_3_5_add_knowledge_N import gen_knowledge_N
 
 # Regex to capture numbers: decimals first, then integers
+SEED = 2
 NUM_RE = re.compile(r'\d+\.\d+|\d+')
-RNG = np.random.RandomState(0)
+RNG = np.random.RandomState(SEED)
+
 
 def map_integer(s: str, scale=1000) -> str:
     """Map an integer string to a larger integer."""
@@ -26,8 +29,9 @@ def build_number_map(question: str, lhs_expr: str):
     Build a mapping from original numeric strings to new numeric strings.
     """
     mapping = {}
-    all_nums = set(NUM_RE.findall(question)) # + NUM_RE.findall(lhs_expr))
+    all_nums = sorted(list(set(NUM_RE.findall(question)))) # + NUM_RE.findall(lhs_expr))
     print(f"lhs_expr:{lhs_expr}")
+    print(f"all_nums:{all_nums}")
 
     for num in all_nums:
         if '.' in num:
@@ -121,3 +125,4 @@ def process_file(input_csv: str, output_jsonl: str):
 if __name__ == "__main__":
     process_file("./data/MAWPS/data_raw_filtered_edited.csv", "./data/MAWPS/data_raw_f2.jsonl")
     gen_knowledge("./data/MAWPS/data_raw_f2.jsonl")
+    gen_knowledge_N("./data/MAWPS/data_raw_f2.jsonl")

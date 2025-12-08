@@ -85,31 +85,6 @@ def gen_knowledge(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         json.dump({"knowledge":knowledge_str,"index":item["index"]},knowledge_file_full)
         knowledge_file_full.write("\n")
 
-        #------------- 11_fwN -------------
-        eq = copy.deepcopy(eq_original)
-        eq = [x.strip() for x in eq]
-        eq0 = eq[0]
-        knowledge = []
-        for eq1 in eq[1:]:
-            eq_str = f"{eq0}{op}{eq1}"
-            result = eval_result(eq_str)
-            knowledge.append(f"{eq_str}={result}")
-            eq0_old = eq0
-            eq0 = result
-
-            for op_temp in ['+', '*']:
-                eq0_temp = eq0
-                for eq_temp in [eq1, eq0_old, eq1, eq0_old]:
-                    eq_str_temp = f"{eq0_temp}{op_temp}{eq_temp}"
-                    result_temp = eval_result(eq_str_temp)
-                    knowledge.append(f"{eq_str_temp}={result_temp}")
-                    if result_temp > 10000000:
-                        result_temp = int(result_temp/100000)
-                    eq0_temp = result_temp
-
-        knowledge_str = "\n".join(knowledge)
-        #json.dump({"knowledge":knowledge_str,"index":item["index"]},knowledge_file_fwN)
-        #knowledge_file_fw.write("\n")
 
 if __name__ == "__main__":
     gen_knowledge("./data/MAWPS/data_raw_f2.jsonl")

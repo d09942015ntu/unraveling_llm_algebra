@@ -16,7 +16,7 @@ def eval_result(eq_str):
     return result
 
 
-def gen_knowledge(input_file="./data/MAWPS/data_raw_f2.jsonl"):
+def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
     input_dir = os.path.dirname(input_file)
     #knowledge_file_fw = open(os.path.join(input_dir, "knowledge_1_fw.jsonl"), "w")
     #knowledge_file_bw = open(os.path.join(input_dir, "knowledge_2_bw.jsonl"), "w")
@@ -164,4 +164,4 @@ def gen_knowledge(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         knowledge_file_fullN.write("\n")
 
 if __name__ == "__main__":
-    gen_knowledge("./data/MAWPS/data_raw_f2.jsonl")
+    gen_knowledge_N("./data/MAWPS/data_raw_f2.jsonl")
