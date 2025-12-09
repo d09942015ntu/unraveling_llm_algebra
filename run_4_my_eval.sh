@@ -19,7 +19,7 @@ model_tags=(qwen7b qwen72b) #llama8b llama70b)
 for model_tag in ${model_tags[@]};do
     for seed in $(seq 0 2); do
       for ttype in ${types[@]}; do
-          python3 my_2_eval.py --input_file=outputs/${model_tag}_MAWPS_${ttype}_${seed}.jsonl > outputs_eval/${model_tag}_MAWPS_eval_${ttype}_${seed}.txt
+          python3 my_2_eval.py --input_file=output_MAWPS_1/${model_tag}_MAWPS_${ttype}_${seed}.jsonl > outputs_eval/${model_tag}_MAWPS_eval_${ttype}_${seed}.txt
       done
     done
 
@@ -27,7 +27,7 @@ for model_tag in ${model_tags[@]};do
       echo "${model_tag}-${ttype}"
       t_mean=$(grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_MAWPS_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash mean 1)
       t_var=$(grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_MAWPS_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash pvar 1)
-      echo "${t_mean}-${t_var}"
+      echo "${t_mean} - ${t_var}"
     done
     echo ""
 done
