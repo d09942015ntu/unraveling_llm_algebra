@@ -4,7 +4,7 @@ import re
 import numpy as np
 import math
 from my_3_4_add_knowledge import gen_knowledge
-from my_3_5_add_knowledge_N import gen_knowledge_N
+from my_3_5_add_knowledge_N2 import gen_knowledge_N
 
 # Regex to capture numbers: decimals first, then integers
 SEED = 2
@@ -129,5 +129,5 @@ def process_file(input_csv: str, output_jsonl: str):
 
 if __name__ == "__main__":
     process_file("./data/MAWPS/data_raw_filtered_edited.csv", f"./data/MAWPS/set_1{SEED}/data_raw_f2.jsonl")
-    gen_knowledge(f"./data/MAWPS/set_1{SEED}/data_raw_f2.jsonl")
-    gen_knowledge_N(f"./data/MAWPS/set_1{SEED}/data_raw_f2.jsonl")
+    gen_knowledge(f"./data/MAWPS/set_2{SEED}/data_raw_f2.jsonl")
+    gen_knowledge_N(f"./data/MAWPS/set_2{SEED}/data_raw_f2.jsonl")

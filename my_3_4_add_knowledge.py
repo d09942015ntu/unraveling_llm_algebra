@@ -46,11 +46,13 @@ def gen_knowledge(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         elif "*" in eq:
             eq = eq.split("*")
             op = "*"
+
+        eq = [x.strip() for x in eq]
         eq_original = copy.deepcopy(eq)
 
         #------------- 1_fw -------------
         eq = copy.deepcopy(eq_original)
-        eq = [x.strip() for x in eq]
+
         eq0 = eq[0]
         knowledge = []
         for eq1 in eq[1:]:
