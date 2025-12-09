@@ -161,7 +161,18 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         #------------- 31_fullN -------------
         knowledge_fwN= knowledge_fwN[:int(len(knowledge_fwN)/2)]
         knowledge_bwN= knowledge_bwN[:int(len(knowledge_bwN)/2)]
-        knowledge_fullN = knowledge_fwN + knowledge_bwN + knowledge_full
+
+
+        knowledge_full_1 = []
+        eq = copy.deepcopy(eq_original)
+        eq_str_1 = f"+".join(eq)
+        eq_str_2 = f"*".join(eq)
+        result_1 = eval_result(eq_str_1)
+        result_2 = eval_result(eq_str_2)
+        knowledge_full_1.append(f"{eq_str_1}={result_1}")
+        knowledge_full_1.append(f"{eq_str_2}={result_2}")
+
+        knowledge_fullN = knowledge_fwN + knowledge_bwN + knowledge_full_1
 
         for k in knowledge_fw:
             if k in knowledge_fullN:
@@ -176,4 +187,4 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         knowledge_file_fullN.write("\n")
 
 if __name__ == "__main__":
-    gen_knowledge_N("./data/MAWPS/set_backup/data_raw_f2.jsonl")
+    gen_knowledge_N("./data/MAWPS_samples/data_raw_f2.jsonl")
