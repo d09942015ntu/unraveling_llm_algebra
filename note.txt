@@ -1,4 +1,4 @@
-# Qwen7b
+# qwen/qwen-2.5-7b-instruct
 #0_none
 #0.59071038251366
 #1_full
@@ -9,3 +9,8 @@
 #0.72404371584699
 #4_noop
 #0.81803278688525
+
+
+meta-llama/llama-3.1-8b-instruct
+meta-llama/llama-3.1-70b-instruct
+meta-llama/llama-3.1-405b-instruct
