@@ -49,6 +49,7 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         elif "*" in eq:
             eq = eq.split("*")
             op = "*"
+
         eq = [x.strip() for x in eq]
         eq_original = copy.deepcopy(eq)
 
@@ -175,4 +176,4 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         knowledge_file_fullN.write("\n")
 
 if __name__ == "__main__":
-    gen_knowledge_N("./data/MAWPS/data_raw_f2.jsonl")
+    gen_knowledge_N("./data/MAWPS/set_backup/data_raw_f2.jsonl")
