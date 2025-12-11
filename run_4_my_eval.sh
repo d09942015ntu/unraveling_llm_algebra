@@ -1,7 +1,8 @@
 source venv/bin/activate
 
 mkdir -p outputs_eval
-types=(0_none 1_fw 2_bw 3_full 11_fwN 21_bwN 31_fullN) #2_com 3_ide)
+types=(0_none 3_full 1_fw 2_bw 31_fullN 11_fwN 21_bwN) #2_com 3_ide)
+Tname=(None One FW BW One-N FW-N BW-N)
 
 #types=(0_none) # 1_full 2_com 5_xop 4_noop)
 
@@ -12,26 +13,34 @@ seed=0
 #meta-llama/llama-3.1-8b-instruct
 #meta-llama/llama-3.1-70b-instruct
 
+api_result_dir="output_MAWPS_2"
+
 model_tag="qwen7b"
 
-model_tags=(qwen7b qwen72b) #llama8b llama70b)
+model_tags=(qwen7b qwen72b llama8b llama70b)
 
 for model_tag in ${model_tags[@]};do
     for seed in $(seq 0 2); do
       for ttype in ${types[@]}; do
-          python3 my_2_eval.py --input_file=output_MAWPS_1/${model_tag}_MAWPS_${ttype}_${seed}.jsonl > outputs_eval/${model_tag}_MAWPS_eval_${ttype}_${seed}.txt
+          python3 my_2_eval.py --input_file=${api_result_dir}/${model_tag}_MAWPS_${ttype}_${seed}.jsonl > outputs_eval/${model_tag}_MAWPS_eval_${ttype}_${seed}.txt
       done
     done
 
+    echo "${model_tag}"
+    tidx=0
     for ttype in ${types[@]}; do
-      echo "${model_tag}-${ttype}"
       t_mean=$(grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_MAWPS_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash mean 1)
       t_var=$(grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_MAWPS_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash pvar 1)
-      echo "${t_mean} - ${t_var}"
+      if [[ $t_var -le 0.0001 ]]; then
+            echo "${t_var} less than 0.0001"
+      fi
+      echo "(${Tname[${tidx}]}, ${t_mean}) std: ${t_var}" 
+      tidx=$(($tidx+1))
     done
     echo ""
 done
 
+# - ${t_var}"
 # Qwen7b
 #0_none
 #0.59071038251366
