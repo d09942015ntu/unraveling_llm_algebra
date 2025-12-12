@@ -119,11 +119,12 @@ def run():
 
     total_correct = []
     with open(args.input_file, "r") as f:
-        for idx, line in enumerate(f.readlines()):
+        for line in f.readlines():
             json_data = json.loads(line)
+            idx = json_data["index"]
             correct = judge_correct(json_data, idx)
             total_correct.append(correct)
-    print(f"averaged_correct:{np.average(total_correct)}")
+    print(f"averaged_correct:{np.average(total_correct):.5f}")
 
 
 

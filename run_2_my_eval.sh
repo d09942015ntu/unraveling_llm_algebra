@@ -1,7 +1,8 @@
 source venv/bin/activate
 
 mkdir -p outputs_eval
-types=(0_none 1_full 2_com 3_ide)
+types=(0_none 1_full 2_com 3_ide 11_fullN 21_comN 31_ideN)
+Tname=(None Orig Com Ide Orig-N Com-N Ide-N)
 
 #types=(0_none) # 1_full 2_com 5_xop 4_noop)
 
@@ -23,9 +24,16 @@ for model_tag in ${model_tags[@]};do
       done
     done
 
+    echo "${model_tag}"
+    tidx=0
     for ttype in ${types[@]}; do
-      echo "${model_tag}-${ttype}"
-      grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash mean 1
+      t_mean=$(grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash mean 1)
+      t_var=$(grep "averaged_correct:\([0-1].[0-9]\+\)" outputs_eval/${model_tag}_eval_${ttype}_* | grep "[0-1].[0-9]\+" -o | datamash pvar 1)
+      if [[ $t_var -le 0.0001 ]]; then
+            echo "${t_var} less than 0.0001"
+      fi
+      echo "(${Tname[${tidx}]}, ${t_mean}) std: ${t_var}"
+      tidx=$(($tidx+1))
     done
     echo ""
 done
