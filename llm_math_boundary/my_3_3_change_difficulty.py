@@ -1,0 +1,133 @@
+import csv
+import json
+import re
+import numpy as np
+import math
+from my_3_4_add_knowledge import gen_knowledge
+from my_3_5_add_knowledge_N2 import gen_knowledge_N
+
+# Regex to capture numbers: decimals first, then integers
+SEED = 2
+NUM_RE = re.compile(r'\d+\.\d+|\d+')
+RNG = np.random.RandomState(SEED)
+
+
+def map_integer(s: str, scale=1000) -> str:
+    """Map an integer string to a larger integer."""
+    n = int(s)
+    new_n = n * scale + RNG.randint(scale,scale*5)
+    return str(new_n)
+
+def map_decimal(s: str, to_int=True, scale=5) -> str:
+    """Map a decimal string to a 2-decimal-place number."""
+    x = float(s)
+    new_x = x * scale + RNG.randint(scale,scale*5)
+    if to_int:
+        new_x = round(new_x)
+    return f"{new_x}"
+
+def build_number_map(question: str, lhs_expr: str):
+    """
+    Build a mapping from original numeric strings to new numeric strings.
+    """
+    mapping = {}
+    all_nums = sorted(list(set(NUM_RE.findall(question)))) # + NUM_RE.findall(lhs_expr))
+    print(f"lhs_expr:{lhs_expr}")
+    print(f"all_nums:{all_nums}")
+
+    for num in all_nums:
+        if '.' in num:
+            if '*' in lhs_expr:
+                mapping[num] = map_decimal(num, to_int=True, scale=5)
+            else:
+                mapping[num] = map_decimal(num, to_int=False, scale=1024)
+        else:
+            if '*' in lhs_expr:
+                mapping[num] = map_integer(num, scale=5)
+            else:
+                mapping[num] = map_integer(num, scale=100000)
+    print(f"mapping:{mapping}")
+    return mapping
+
+def replace_numbers(text: str, mapping: dict) -> str:
+    """Replace numbers in text according to mapping."""
+    def repl(match):
+        s = match.group(0)
+        return mapping.get(s, s)
+    return NUM_RE.sub(repl, text)
+
+def recompute_rhs(lhs_expr: str) -> str:
+    """Recompute RHS after modifying LHS."""
+    lhs_part = lhs_expr.split('=')[0].strip()
+    try:
+        value = eval(lhs_part, {"__builtins__": None}, {})
+    except Exception as e:
+        raise RuntimeError(f"Error evaluating: {lhs_part}") from e
+
+    if isinstance(value, float):
+        if abs(value - round(value)) < 1e-9:
+            return str(int(round(value)))
+        s = f"{value}"
+        s = s.rstrip("0").rstrip(".")
+        return s
+    return str(value)
+
+def inner_loop(input_csv, f_out, operator, index_offset=0):
+    with open(input_csv, newline="", encoding="utf-8") as f_in:
+        reader = csv.DictReader(f_in)
+        for i, row in enumerate(reader):
+            q = row["question"]
+            ans = row["answer"]
+            if operator not in ans:
+                continue
+            expr_part = ans.split("####")[0].strip()
+            lhs_raw = expr_part.split("=")[0].strip()
+
+            mapping = build_number_map(q, lhs_raw)
+
+            q_new = replace_numbers(q, mapping)
+            lhs_new = replace_numbers(lhs_raw, mapping)
+
+            rhs_new = recompute_rhs(lhs_new)
+
+            ans_new = f"{lhs_new} = {rhs_new} #### {rhs_new}"
+
+            record = {
+                "question": q_new,
+                "answer": ans_new,
+                "index": str(i+index_offset),
+            }
+            index_offset += 1
+            f_out.write(json.dumps(record, ensure_ascii=False) + "\n")
+    return index_offset
+
+
+def process_file(input_csv: str, output_jsonl: str):
+    operator_add = 0
+    with open(input_csv, newline="", encoding="utf-8") as f_in:
+        reader = csv.DictReader(f_in)
+        for i, row in enumerate(reader):
+            ans = row["answer"]
+            if '+' in ans:
+                operator_add += 1
+
+    operator_mult = 0
+    with open(input_csv, newline="", encoding="utf-8") as f_in:
+        reader = csv.DictReader(f_in)
+        for i, row in enumerate(reader):
+            ans = row["answer"]
+            if '*' in ans:
+                operator_mult += 1
+
+    with open(output_jsonl, "w", encoding="utf-8") as f_out:
+        index_offset = inner_loop(input_csv, f_out, '+')
+        for _ in range(int(math.ceil(operator_add/operator_mult))):
+            index_offset = inner_loop(input_csv, f_out, '*', index_offset)
+
+    print(f"Wrote transformed data to {output_jsonl}")
+
+
+if __name__ == "__main__":
+    process_file("./data/MAWPS/data_raw_filtered_edited.csv", f"./data/MAWPS/set_1{SEED}/data_raw_f2.jsonl")
+    gen_knowledge(f"./data/MAWPS/set_2{SEED}/data_raw_f2.jsonl")
+    gen_knowledge_N(f"./data/MAWPS/set_2{SEED}/data_raw_f2.jsonl")
