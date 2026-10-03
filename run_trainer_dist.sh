@@ -8,7 +8,6 @@ source venv_llm_math/bin/activate
 dataset_type='dist+distx'
 DEFAULT_CUDA_VISIBLE_DEVICES=0
 CUDA_VISIBLE_DEVICES="${1:-$DEFAULT_CUDA_VISIBLE_DEVICES}"
-# Export the CUDA_VISIBLE_DEVICES variable
 
 export CUDA_VISIBLE_DEVICES
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}"
@@ -32,6 +31,7 @@ for ds in ${datasets[@]};do
             --dataset_type=${dataset_type}  \
             --batch_size=768 \
             --rm_position=0 \
+            --max_length=32 \
             --output_name=${data_name}
 done
 

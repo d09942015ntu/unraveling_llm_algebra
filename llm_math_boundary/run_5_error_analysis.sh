@@ -18,7 +18,7 @@ seed=0
 for ttype in ${types[@]}; do
 
 
-    python3 my_5_error_analysis.py \
+    python3 my_5_1_analysis_knowledge.py \
           --knowledge_file="data/biggsm/knowledge_${ttype}.jsonl" \
           --input_file=outputs/${model_tag}_knowledge_${ttype}_${seed}.jsonl > ${output_dir}/${model_tag}_eval_${ttype}_${seed}.txt
 done

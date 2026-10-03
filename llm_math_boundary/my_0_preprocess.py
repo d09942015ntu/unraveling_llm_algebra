@@ -1,7 +1,12 @@
+"""Write data/biggsm/knowledge_<type>.jsonl: the equations of each answer, rewritten per knowledge type."""
+import argparse
 import json
 import os
 import re
+
 import numpy as np
+
+ALL_KNOWLEDGE_TYPES = ["1_full", "2_com", "3_ide", "11_fullN", "22_comN", "31_ideN", "4_noop", "41_noop", "5_xop"]
 
 def normalize_equation(eq: str) -> str:
     """
@@ -73,22 +78,14 @@ def gen_noisy_eqs(operands, knowledge_type, rng):
     normalize_equations = [str(x) for x in list(rng.permutation(normalize_equations))]
     return normalize_equations
 
-def process_file(
-    in_path: str = "data/biggsm/data.jsonl",
-):
+def process_file(in_path="data/biggsm/data.jsonl", knowledge_types=ALL_KNOWLEDGE_TYPES):
 
     """
-    Read the original data.jsonl, extract equations from each 'answer',
-    normalize them, and write:
-      - a (possibly unchanged) copy of the data to out_data_path
-      - a knowledge.jsonl file where each line contains:
-            {"knowledge": "...", "index": "..."}
-        with all normalized equations joined by newlines.
+    Read data.jsonl, extract the equations from each 'answer', normalize them, and
+    write knowledge_<type>.jsonl (next to in_path) for every knowledge type. Each line is
+        {"knowledge": "...", "index": "..."}
+    with the rewritten equations joined by newlines.
     """
-
-    #knowledge_types = ["1_full", "2_com", "5_xop", "4_noop", "41_noop"]
-    #knowledge_types = ["1_full", "2_com", "3_ide", "11_fullN", "22_comN", "31_ideN", "4_noop", "41_noop", "5_xop"]
-    knowledge_types = ["12_fullN" "22_comN"]
 
     knowledge_dir = os.path.dirname(in_path)
     fouts = dict([(k,open(knowledge_dir + "/" + f"knowledge_{k}.jsonl", "w", encoding="utf-8") ) for k in knowledge_types])
@@ -113,13 +110,7 @@ def process_file(
             # 2. normalize each equation
             normalized_eqs = [normalize_equation(eq.strip()) for eq in raw_eqs]
 
-            # 3a. write (possibly unchanged) data entry
-            #json.dump(obj, fdata, ensure_ascii=False)
-            #fdata.write("\n")
-
-            # 3b. write knowledge entry (only if we have equations)
-
-
+            # 3. write one knowledge entry per knowledge type
             for knowledge_type in knowledge_types:
                 if knowledge_type == "1_full":
                     normalized_eqs_new = [x for x in normalized_eqs]
@@ -170,7 +161,7 @@ def process_file(
                                 else:
                                     assert 0, f"unknown knowledge type {knowledge_type}"
                             else:
-                                assert 0, f"unknown operator"
+                                assert 0, "unknown operator"
                         else:
                             if knowledge_type != "22_comN" and knowledge_type != "31_ideN":
                                 normalized_eqs_new.append(normalized_eq)
@@ -193,7 +184,8 @@ def process_file(
 
 
 if __name__ == "__main__":
-    # By default, read from 'data.jsonl' and write:
-    #   - processed data to 'data.jsonl' (can change to 'data_out.jsonl' if desired)
-    #   - knowledge to 'knowledge.jsonl'
-    process_file()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--in_path", default="data/biggsm/data.jsonl")
+    parser.add_argument("--knowledge_types", nargs="+", default=ALL_KNOWLEDGE_TYPES, choices=ALL_KNOWLEDGE_TYPES)
+    args = parser.parse_args()
+    process_file(args.in_path, args.knowledge_types)

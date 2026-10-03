@@ -1,8 +1,7 @@
-import csv
+import copy
 import json
 import os.path
-import copy
-import re
+
 import numpy as np
 
 RNG = np.random.RandomState(0)
@@ -49,6 +48,7 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         elif "*" in eq:
             eq = eq.split("*")
             op = "*"
+
         eq = [x.strip() for x in eq]
         eq_original = copy.deepcopy(eq)
 
@@ -85,9 +85,6 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         eq_str = f"{op}".join(eq)
         result = eval_result(eq_str)
         knowledge.append(f"{eq_str}={result}")
-        knowledge_full = copy.deepcopy(knowledge)
-        #json.dump({"knowledge":knowledge_str,"index":item["index"]},knowledge_file_full)
-        #knowledge_file_full.write("\n")
 
         #------------- 11_fwN -------------
         eq = copy.deepcopy(eq_original)
@@ -99,8 +96,8 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
             eq_str_2 = f"{eq0_2}*{eq1}"
             result_1 = eval_result(eq_str_1)
             result_2 = eval_result(eq_str_2)
-            knowledge.append(f"{eq_str}={result_1}")
-            knowledge.append(f"{eq_str}={result_2}")
+            knowledge.append(f"{eq_str_1}={result_1}")
+            knowledge.append(f"{eq_str_2}={result_2}")
             eq0_old_1 = eq0_1
             eq0_old_2 = eq0_2
             eq0_1 = result_1
@@ -133,8 +130,8 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
             eq_str_2 = f"{eq1}*{eq0_2}"
             result_1 = eval_result(eq_str_1)
             result_2 = eval_result(eq_str_2)
-            knowledge.append(f"{eq_str}={result_1}")
-            knowledge.append(f"{eq_str}={result_2}")
+            knowledge.append(f"{eq_str_1}={result_1}")
+            knowledge.append(f"{eq_str_2}={result_2}")
             eq0_old_1 = eq0_1
             eq0_old_2 = eq0_2
             eq0_1 = result_1
@@ -160,7 +157,18 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         #------------- 31_fullN -------------
         knowledge_fwN= knowledge_fwN[:int(len(knowledge_fwN)/2)]
         knowledge_bwN= knowledge_bwN[:int(len(knowledge_bwN)/2)]
-        knowledge_fullN = knowledge_fwN + knowledge_bwN + knowledge_full
+
+
+        knowledge_full_1 = []
+        eq = copy.deepcopy(eq_original)
+        eq_str_1 = "+".join(eq)
+        eq_str_2 = "*".join(eq)
+        result_1 = eval_result(eq_str_1)
+        result_2 = eval_result(eq_str_2)
+        knowledge_full_1.append(f"{eq_str_1}={result_1}")
+        knowledge_full_1.append(f"{eq_str_2}={result_2}")
+
+        knowledge_fullN = knowledge_fwN + knowledge_bwN + knowledge_full_1
 
         for k in knowledge_fw:
             if k in knowledge_fullN:
@@ -175,4 +183,4 @@ def gen_knowledge_N(input_file="./data/MAWPS/data_raw_f2.jsonl"):
         knowledge_file_fullN.write("\n")
 
 if __name__ == "__main__":
-    gen_knowledge_N("./data/MAWPS/data_raw_f2.jsonl")
+    gen_knowledge_N("./data/MAWPS_samples/data_raw_f2.jsonl")

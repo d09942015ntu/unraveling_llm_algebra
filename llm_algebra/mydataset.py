@@ -1,11 +1,10 @@
-import os.path
 import json
-from torch.utils.data import Dataset
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, Trainer, TrainingArguments
+import os.path
+
 import pandas as pd
 import torch
-import random
-import numpy as np
+from torch.utils.data import Dataset
+from transformers import GPT2Tokenizer
 
 class TrainDataset(Dataset):
     def __init__(self, data_dir, tokenizer, ftype='train'):
@@ -16,15 +15,12 @@ class TrainDataset(Dataset):
         tokenizer.add_special_tokens(special_tokens_dict)
         self.tokenizer = tokenizer
         self.max_length = 10
-        self.rng = np.random.RandomState(0)
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         row = self.data.iloc[idx]
-        # Randomly choose a starting point
-        # Match s_i as input and s_{i+1} as the target
         s1 = row['s1']
         s2 = row['s2']
 
@@ -47,13 +43,8 @@ class EvalDataset(TrainDataset):
         super().__init__(file_path, tokenizer, ftype=ftype)
         self.max_length = 8
 
-    def __len__(self):
-        return len(self.data)
-
     def __getitem__(self, idx):
         row = self.data.iloc[idx]
-        # Randomly choose a starting point
-        # Match s_i as input and s_{i+1} as the target
         s1 = row['s1']
         s2 = row['s2']
 
@@ -73,7 +64,7 @@ if __name__ == '__main__':
     dataset = TrainDataset(data_name, tokenizer)
     for item in dataset:
         for key, value in item.items():
-            if key == 'input_ids': #or key == 'labels':
+            if key == 'input_ids':
                 raw = dataset.tokenizer.decode(value)
             else:
                 raw = "0"

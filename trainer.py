@@ -5,177 +5,140 @@ import json
 import logging
 import os
 import shutil
-import sys
 
 import numpy as np
-from transformers import Trainer, TrainingArguments, TrainerCallback, AutoModelForCausalLM, AutoTokenizer
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import ConcatDataset, DataLoader
+from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainerCallback, TrainingArguments
 
 from evaluator import evaluate
-from mydataset import TrainDataset, EvalDataset
+from mydataset import EvalDataset, TrainDataset
 from utils import reinitialize_weights
 
 
 def setup_logger(name, log_file, level=logging.DEBUG):
-    """Sets up a logger to output to both terminal and file."""
+    """Logger that writes plain messages to both the terminal and ``log_file``."""
     logger = logging.getLogger(name)
     logger.setLevel(level)
-
-    # Create a file handler
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(level)
-
-    # Create a console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
-
-    # Create a formatter and set it for both handlers
     formatter = logging.Formatter('%(message)s')
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
-
-    # Add the handlers to the logger
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-
+    for handler in [logging.FileHandler(log_file), logging.StreamHandler()]:
+        handler.setLevel(level)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
     return logger
 
 
-class StringOutputEvaluator(TrainerCallback):
-    def __init__(self, model, tokenizer, ckpt_path, dataset_dir, logger, dataset_type_list):
+class AccuracyLogger(TrainerCallback):
+    """At every logging step, measure train/test accuracy of each dataset type and stop once the loss settles."""
+
+    def __init__(self, model, tokenizer, dataset_dir, logger, dataset_types, rm_position=0, max_length=15,
+                 batch_size=32):
         self.model = model
-        self.tokenizer = tokenizer
-        self.ckpt_path = ckpt_path
-        self.dataset_dir = dataset_dir
         self.logger = logger
         self.wait = 0
-        self.batch_size = 32
-        self.train_dataloaders = dict([(data_type, DataLoader(
-            EvalDataset(self.dataset_dir, self.tokenizer, ftype=f'train_{data_type}', rm_position=0),
-            batch_size=self.batch_size, shuffle=False)) for data_type in dataset_type_list])
-        self.eval_dataloaders = dict([(data_type, DataLoader(
-            EvalDataset(self.dataset_dir, self.tokenizer, ftype=f'test_{data_type}', rm_position=0),
-            batch_size=self.batch_size, shuffle=False)) for data_type in dataset_type_list
-                                      if os.path.isfile(os.path.join(self.dataset_dir, f'test_{data_type}.csv'))])
+
+        def loader(ftype):
+            dataset = EvalDataset(dataset_dir, tokenizer, ftype=ftype, rm_position=rm_position,
+                                  max_length=max_length)
+            return DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+        self.train_dataloaders = {t: loader(f'train_{t}') for t in dataset_types}
+        self.eval_dataloaders = {t: loader(f'test_{t}') for t in dataset_types
+                                 if os.path.isfile(os.path.join(dataset_dir, f'test_{t}.csv'))}
 
     def on_log(self, args, state, control, **kwargs):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
         self.model.to(device)
         self.model.eval()
 
-        train_accuracy = dict([(f"train_{ikey}", evaluate(self.model, self.train_dataloaders[ikey])) for ikey in
-                               self.train_dataloaders.keys()])
-        eval_accuracy = dict([(f"eval_{ikey}", evaluate(self.model, self.eval_dataloaders[ikey])) for ikey in
-                              self.eval_dataloaders.keys()])
-        epoch = state.log_history[-1]['epoch']
-        loss = state.log_history[-1].get('loss', np.inf)
-        step = state.log_history[-1]['step']
+        train_accuracy = {f"train_{t}": evaluate(self.model, dl) for t, dl in self.train_dataloaders.items()}
+        eval_accuracy = {f"eval_{t}": evaluate(self.model, dl) for t, dl in self.eval_dataloaders.items()}
+        last = state.log_history[-1]
+        loss = last.get('loss', np.inf)
 
-        history_len = len(state.log_history)
-        history_len_2 = 50
-        history_len_4 = 20
-        history_avg_1 = np.average([x.get('loss', 9999) for x in state.log_history[-history_len_2:-history_len_4]])
-        history_avg_2 = np.average([x.get('loss', 9999) for x in state.log_history[-history_len_4:]])
+        # Average loss over two recent windows of the log history, used to detect a plateau.
+        older_window, recent_window = 50, 20
+        older_avg = np.average([x.get('loss', 9999) for x in state.log_history[-older_window:-recent_window]])
+        recent_avg = np.average([x.get('loss', 9999) for x in state.log_history[-recent_window:]])
 
-        log_str = json.dumps({'step': step,
-                              'epoch': epoch,
-                              'loss': loss,
-                              'train_acc': train_accuracy,
-                              'eval_acc': eval_accuracy,
-                              "history": {
-                                  "history_len_2": history_len_2,
-                                  "history_len_4": history_len_4,
-                                  "history_avg_1": history_avg_1,
-                                  "history_avg_2": history_avg_2
-                              }}
-                             )
+        self.logger.info(json.dumps({
+            'step': last['step'],
+            'epoch': last['epoch'],
+            'loss': loss,
+            'train_acc': train_accuracy,
+            'eval_acc': eval_accuracy,
+            "history": {
+                "history_len_2": older_window,
+                "history_len_4": recent_window,
+                "history_avg_1": older_avg,
+                "history_avg_2": recent_avg,
+            }}))
 
-        self.logger.info(log_str)
-        print(log_str)
-        if loss < 0.0001:
-            self.wait += 1
-            if self.wait > 2:
-                sys.exit()
-
-        if history_len > 100 and abs(history_avg_1 - history_avg_2) < 0.0001:
-            self.wait += 1
-            if self.wait > 2:
-                sys.exit()
+        loss_is_tiny = loss < 0.0001
+        loss_plateaued = len(state.log_history) > 100 and abs(older_avg - recent_avg) < 0.0001
+        self.wait += int(loss_is_tiny) + int(loss_plateaued)
+        if self.wait > 2:
+            control.should_training_stop = True
 
 
 def main():
     parser = argparse.ArgumentParser(description='Train a GPT-2 model.')
-    parser.add_argument('--model_name', type=str, default='./mymodels/toytrans', help='Pre-trained model name or path')
-    parser.add_argument('--dataset_dir', type=str, default='./data/all_62_7_1000', help='Path to the training dataset')
+    parser.add_argument('--model_name', type=str, default='gpt2', help='Pre-trained model name or path')
+    parser.add_argument('--dataset_dir', type=str, default='./data/all_64_7_1000', help='Path to the training dataset')
     parser.add_argument('--dataset_type', type=str, default='com+ide',
-                        help='Categories of tasks, seperated by `+`. e.g. com+ide represents commutativity+identity')
-    parser.add_argument('--output_name', type=str, default='', help='path to output directory')
+                        help='Categories of tasks, separated by `+`. e.g. com+ide represents commutativity+identity')
+    parser.add_argument('--output_name', type=str, default='', help='Name of the output directory under ./results')
     parser.add_argument('--batch_size', type=int, default=1024, help='Batch size')
     parser.add_argument('--logging_step', type=int, default=1000, help='Logging step')
     parser.add_argument('--num_train_epochs', type=int, default=2000000, help='Total number of training epoch')
-
+    parser.add_argument('--rm_position', type=int, default=0,
+                        help='1: give all operands the same position id, so their order is hidden from the model')
+    parser.add_argument('--max_length', type=int, default=15, help='Number of tokens every sample is padded to')
     args = parser.parse_args()
-
-    tokenizer_path = "gpt2"
 
     model = AutoModelForCausalLM.from_pretrained(args.model_name, trust_remote_code=True, ignore_mismatched_sizes=True)
     reinitialize_weights(model)
-    dataset_list = []
-    dataset_type_list = args.dataset_type.split("+")
-    for dataset_type in dataset_type_list:
-        dataset_list.append(TrainDataset(args.dataset_dir, AutoTokenizer.from_pretrained(tokenizer_path),
-                                         ftype=f'train_{dataset_type}', rm_position=0))
+    dataset_types = args.dataset_type.split("+")
+    datasets = [TrainDataset(args.dataset_dir, AutoTokenizer.from_pretrained("gpt2"), ftype=f'train_{t}',
+                             rm_position=args.rm_position, max_length=args.max_length)
+                for t in dataset_types]
+    tokenizer = datasets[0].tokenizer
 
-    dataset_train = torch.utils.data.ConcatDataset(dataset_list)
-
-    if 'resize_token_embeddings_by_tokenizer' in dir(model):
-        model.resize_token_embeddings_by_tokenizer(dataset_list[0].tokenizer, fix_transformer=0)
+    if hasattr(model, 'resize_token_embeddings_by_tokenizer'):
+        model.resize_token_embeddings_by_tokenizer(tokenizer, fix_transformer=0)
     else:
-        model.resize_token_embeddings(len(dataset_list[0].tokenizer))
+        model.resize_token_embeddings(len(tokenizer))
 
-    # Get the current date and time
-    current_datetime = datetime.now()
-
-    # Print the current date and time
-    formatted_datetime = current_datetime.strftime("%Y%m%d_%H%M%S")
-    output_dir = os.path.join("./results", f"{args.output_name}-{formatted_datetime}")
+    output_dir = os.path.join("./results", f"{args.output_name}-{datetime.now().strftime('%Y%m%d_%H%M%S')}")
     ckpt_path = os.path.join(output_dir, "checkpoints")
     model_file_path = os.path.join(output_dir, "model")
-
-    os.makedirs(output_dir, exist_ok=True)
-    os.makedirs(os.path.join(output_dir, "model"), exist_ok=True)
-    model_files = glob.glob(os.path.join(args.model_name, "modeling_*"))
-    for model_file in model_files:
-        shutil.copy(os.path.join(model_file), model_file_path)
+    os.makedirs(model_file_path, exist_ok=True)
+    # Keep a copy of custom model code (if any) next to the results.
+    for model_file in glob.glob(os.path.join(args.model_name, "modeling_*")):
+        shutil.copy(model_file, model_file_path)
     logger = setup_logger("my_logger", os.path.join(output_dir, "trainer.log"))
 
     training_args = TrainingArguments(
-        output_dir=ckpt_path,  # Directory to save the training results
-        num_train_epochs=args.num_train_epochs,  # Total number of training epochs
-        per_device_train_batch_size=args.batch_size,  # 1024, # Batch size per device during training
-        save_steps=args.logging_step,  # Save the model every 50 steps
-        save_total_limit=1,  # Keep a maximum of 3 checkpoints
-        logging_steps=args.logging_step,  # Log(output) after every 10 steps
-        learning_rate=5e-5,  # Initial learning rate
-        weight_decay=0.01  # L2 weight decay (regularization)
+        output_dir=ckpt_path,
+        num_train_epochs=args.num_train_epochs,
+        per_device_train_batch_size=args.batch_size,
+        save_steps=args.logging_step,
+        save_total_limit=1,
+        logging_steps=args.logging_step,
+        learning_rate=5e-5,
+        weight_decay=0.01,
     )
 
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=dataset_train,
-        eval_dataset=dataset_train,
-        tokenizer=dataset_list[0].tokenizer,
-        callbacks=[StringOutputEvaluator(model, dataset_list[0].tokenizer, ckpt_path, args.dataset_dir, logger,
-                                         dataset_type_list)]
+        train_dataset=ConcatDataset(datasets),
+        processing_class=tokenizer,
+        callbacks=[AccuracyLogger(model, tokenizer, args.dataset_dir, logger, dataset_types,
+                                  rm_position=args.rm_position, max_length=args.max_length)],
     )
-
-    # Train the model
     trainer.train()
 
 
-# Initialize Trainer
 if __name__ == '__main__':
     main()

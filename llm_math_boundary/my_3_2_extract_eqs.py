@@ -1,8 +1,7 @@
+"""Keep the MAWPS rows whose answer uses a single operator type at least twice."""
 import csv
-import re
 
 OPS = ["+", "-", "*", "/"]
-#OPS = ["+", "*"]
 
 def extract_expr(answer):
     # Get text before "####"
@@ -34,26 +33,17 @@ def qualifies(expr):
     return counts[op] >= 2
 
 
-# --------------------------
-# Main processing
-# --------------------------
+def main(input_file="data/MAWPS/data_raw_all.csv", output_file="data/MAWPS/data_raw_filtered.csv"):
+    with open(input_file, newline="", encoding="utf-8") as f:
+        kept_rows = [row for row in csv.DictReader(f) if qualifies(extract_expr(row["answer"]))]
 
-input_file = "data/MAWPS/data_raw_all.csv"
-output_file = "data/MAWPS/data_raw_filtered.csv"
+    with open(output_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=["question", "answer"])
+        writer.writeheader()
+        writer.writerows(kept_rows)
 
-kept_rows = []
+    print(f"Saved {len(kept_rows)} rows to {output_file}")
 
-with open(input_file, newline="", encoding="utf-8") as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-        expr = extract_expr(row["answer"])
-        if qualifies(expr):
-            kept_rows.append(row)
 
-# Save filtered results
-with open(output_file, "w", newline="", encoding="utf-8") as f:
-    writer = csv.DictWriter(f, fieldnames=["question", "answer"])
-    writer.writeheader()
-    writer.writerows(kept_rows)
-
-print(f"Saved {len(kept_rows)} rows to {output_file}")
+if __name__ == "__main__":
+    main()

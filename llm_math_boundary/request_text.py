@@ -48,10 +48,9 @@ def run(total=1,
         split=0, 
         model_type="openai",
         model_name="gpt-4o-mini-2024-07-18",
-        api_key= f"Bearer {os.environ.get("OPENAI_API_KEY", '')}",
+        api_key= f"Bearer {os.environ.get('OPENAI_API_KEY', '')}",
         request_proxy="https://openrouter.ai/api/v1", # base_url; None means OpenAI base_url by default
         temperature=0.0):
-    print(f"api_key = Bearer {os.environ.get("OPENAI_API_KEY", '')}")
     
     model_config = {
         "temperature": temperature,
