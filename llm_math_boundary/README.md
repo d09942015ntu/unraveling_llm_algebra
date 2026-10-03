@@ -1,3 +1,22 @@
+# Knowledge experiments on BigGSM and MAWPS
+
+The `my_*.py` scripts (and `run_*.sh`) add "knowledge" (equations rewritten with
+commutativity, identity, extra noise, ...) to math word problems and measure how it
+changes LLM accuracy. The rest of this folder comes from the
+[reasoning-boundary](https://github.com/LightChen233/reasoning-boundary) project; its README follows below.
+
+| Step | Script | What it does |
+|---|---|---|
+| 0 | `my_0_preprocess.py` | BigGSM: write `data/biggsm/knowledge_<type>.jsonl` |
+| 1 | `my_1_api.py` (`run_1_*.sh`, `run_3_my_api.sh`) | Ask an LLM every question, with knowledge (needs `OPENAI_API_KEY`, OpenRouter by default) |
+| 2 | `my_2_eval.py` (`run_2_*.sh`, `run_4_my_eval.sh`) | Check the answers and print the accuracy |
+| 3 | `my_3_1` … `my_3_5` | MAWPS: convert, filter, make numbers larger, write knowledge files |
+| 5 | `my_5_1` … `my_5_3` (`run_5_error_analysis.sh`) | Error analysis: wrong answers, comparison between models |
+
+Shared code for these scripts is in `my_common.py`.
+
+---
+
 <!--
  * @Author: Qiguang Chen
  * @LastEditors: Qiguang Chen

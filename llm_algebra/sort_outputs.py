@@ -29,11 +29,9 @@ def sort_strings_by_length(input_file, output_file):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-# Python script to concatenate every six lines into one line within a file
-
-def concatenate_six_lines(input_file, output_file):
+def concatenate_lines(input_file, output_file, n=5):
     """
-    Reads a file and concatenates every six lines into one line, writing the results to another file.
+    Reads a file and concatenates every ``n`` lines into one line, writing the results to another file.
 
     :param input_file: Path to the input file containing lines of text.
     :param output_file: Path to the output file to write the concatenated lines.
@@ -45,9 +43,8 @@ def concatenate_six_lines(input_file, output_file):
 
         # Open the output file for writing
         with open(output_file, 'w') as outfile:
-            for i in range(0, len(lines), 5):
-                # Concatenate six lines, stripping whitespace and joining with a space
-                concatenated_line = ' '.join(line.strip() for line in lines[i:i+5])
+            for i in range(0, len(lines), n):
+                concatenated_line = ' '.join(line.strip() for line in lines[i:i + n])
                 outfile.write(concatenated_line + '\n')
 
         print(f"Lines concatenated successfully and written to {output_file}.")
@@ -57,7 +54,6 @@ def concatenate_six_lines(input_file, output_file):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-# Example usage
 if __name__ == "__main__":
     ifs = [
         "train_com.csv",
@@ -73,4 +69,4 @@ if __name__ == "__main__":
     ]
     for input_file, output_file in zip(ifs,ofs):
         sort_strings_by_length(input_file, output_file)
-        concatenate_six_lines(output_file,output_file)
+        concatenate_lines(output_file, output_file)

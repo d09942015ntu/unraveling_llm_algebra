@@ -4,7 +4,7 @@ import re
 import numpy as np
 import math
 from my_3_4_add_knowledge import gen_knowledge
-from my_3_5_add_knowledge_N2 import gen_knowledge_N
+from my_3_5_add_knowledge_N import gen_knowledge_N
 
 # Regex to capture numbers: decimals first, then integers
 SEED = 2

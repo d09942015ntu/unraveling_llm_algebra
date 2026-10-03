@@ -1,4 +1,4 @@
-transformers[torch]
+transformers[torch]>=4.46
 torch
 pandas
 numpy

@@ -17,7 +17,7 @@
 
 from collections import OrderedDict
 from typing import Any, List, Mapping, Optional
-import logging
+from transformers.utils import logging
 
 from transformers.configuration_utils import PretrainedConfig
 

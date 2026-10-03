@@ -50,16 +50,11 @@ class SingleAttentionTransformer(nn.Module):
 
         return output
 
-# Toy example configuration
-embed_dim = 8
-seq_len = 5
-batch_size = 2
-
-# Create random input data
-x = torch.randn(batch_size, seq_len, embed_dim)
-
-# Instantiate the transformer and print output
-model = SingleAttentionTransformer(embed_dim=embed_dim, seq_len=seq_len)
-output = model(x)
-
-print("Output:", output)
+if __name__ == '__main__':
+    # Toy example: random input through one block
+    embed_dim = 8
+    seq_len = 5
+    batch_size = 2
+    x = torch.randn(batch_size, seq_len, embed_dim)
+    model = SingleAttentionTransformer(embed_dim=embed_dim, seq_len=seq_len)
+    print("Output:", model(x))

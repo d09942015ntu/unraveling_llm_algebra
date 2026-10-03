@@ -1,13 +1,13 @@
+"""Generate the ide_41_<m>_<pn> datasets (commutativity, identity and inverse for +/-)."""
 import csv
-import json
-import os.path
 import itertools
+import json
 import math
+import os.path
 from collections import Counter
 
-
 import numpy as np
-import random
+
 
 def addition_str_41(S, n):
     input_str = ""
@@ -24,7 +24,6 @@ def addition_str_41(S, n):
                 input_str += f"[-][{abs(s)}]"
     input_str+="[=]"
     label_str=f"[{str((sum(S))%n)}]"
-    print(input_str,label_str)
     return input_str,label_str
 
 def add_traintest_com_41(S, train_set, test_set, rng, p):
@@ -34,8 +33,6 @@ def add_traintest_com_41(S, train_set, test_set, rng, p):
         split = 1
     elif len(permutations) == 2:
         split = int(rng.rand() > p)
-    #elif len(permutations) > 2 and len(permutations) < (1/p):
-    #    split = len(permutations) - 1
     else:
         split = int(math.ceil(len(permutations) * (1-p)))
     train_i = permutations[:split]
@@ -81,47 +78,6 @@ def add_traintest_inv_41(S, train_set, test_set, rng, p):
             if len([s for s in result if s < 0]) > 0:
                 train_set.append(result)
 
-def dataset_com_41(m=100, p=0.2):
-    seed=0
-    rng=np.random.RandomState(seed)
-    train_set=[]
-    test_set=[]
-    for a in range(1,m):
-        for b in range(a,m):
-            add_traintest_com_41([a, b], train_set, test_set, rng, p)
-            for c in range(b, m):
-                add_traintest_com_41([a, b, c], train_set, test_set, rng, p)
-                for d in range(c, m):
-                    add_traintest_com_41([a,b,c,d], train_set, test_set, rng, p)
-    train_set = [addition_str_41(s,m) for s in train_set]
-    test_set = [addition_str_41(s,m) for s in test_set]
-    rng.shuffle(train_set)
-    rng.shuffle(test_set)
-    return train_set, test_set
-
-
-def dataset_ide_41(m=100, p=0.2):
-    seed=0
-    rng=np.random.RandomState(seed)
-    train_set=[]
-    test_set=[]
-    a = 0
-    for b in range(a,m):
-        add_traintest_com_41([a, b], train_set, [], rng, p)
-        add_traintest_ide_41([a, b], train_set, test_set, rng, p)
-        for c in range(b, m):
-            add_traintest_com_41([a, b, c], train_set, [], rng, p)
-            add_traintest_ide_41([a, b, c], train_set, test_set, rng, p)
-            for d in range(c, m):
-                add_traintest_com_41([a,b,c,d], train_set, [], rng, p)
-                add_traintest_ide_41([a,b,c,d], train_set, test_set, rng, p)
-    train_set = [addition_str_41(s,m) for s in train_set]
-    test_set = [addition_str_41(s,m) for s in test_set]
-    rng.shuffle(train_set)
-    rng.shuffle(test_set)
-    return train_set, test_set
-
-
 def dataset_inv_41(rng, m=100, p=0.2):
     train_set_1=[]
     train_set_2=[]
@@ -154,10 +110,6 @@ def dataset_inv_41(rng, m=100, p=0.2):
     test_set_1 = [addition_str_41(s,m) for s in test_set_1]
     test_set_2 = [addition_str_41(s,m) for s in test_set_2]
     test_set_3 = [addition_str_41(s,m) for s in test_set_3]
-    #rng.shuffle(train_set)
-    #rng.shuffle(test_set_1)
-    #rng.shuffle(test_set_2)
-    #rng.shuffle(test_set_3)
     return train_set_1, train_set_2, train_set_3, test_set_1, test_set_2, test_set_3
 
 
@@ -169,13 +121,10 @@ def write_to_csv(save_set,csv_name,  rng):
         for t in save_set:
             writer.writerow(t)
 
-def save_dataset(m=100, fname='inv_41',pn=2):
+def save_dataset(m=100, pn=2):
+    """Save to ./data/ide_41_<m>_<pn>; pn/10 is the fraction of samples held out for testing."""
     seed=0
     rng=np.random.RandomState(seed)
-    #if 'com_41' in fname:
-    #    train_set, test_set = dataset_com_41(m)
-    #elif 'ide_41' in fname:
-    #    train_set, test_set = dataset_ide_41(m)
     train_set_1, train_set_2, train_set_3, test_set_1, test_set_2, test_set_3 = dataset_inv_41(rng, m, pn/10)
     save_path = os.path.join('./data', f'ide_41_{m}_{pn}')
     os.makedirs(save_path,exist_ok=True)
@@ -212,4 +161,3 @@ if __name__ == '__main__':
     for n in [5,7, 11]:
         for pn in [1,2,3,4,5,6,7,8,9]:
             save_dataset(n, pn=pn)
-    #print(used)

@@ -1,153 +1,53 @@
-'''
-Author: Qiguang Chen
-LastEditors: Qiguang Chen
-Date: 2023-12-18 14:54:57
-LastEditTime: 2024-05-18 16:38:28
-Description: 
-
-'''
-
-import asyncio
-from functools import partial
-import random
-import numpy as np
-from openai import OpenAI
-import queue as queue_package
+"""Print every wrong answer in a my_1_api.py output file, together with the knowledge given to the model."""
 import argparse
-
-
-
-from copy import deepcopy
 import json
-import os
-import re
-from typing import List
-from tqdm import tqdm
 
-from utils.tools import read_jsonl, write_jsonl
-
-random.seed(42)
-
-def judge_error(pred):
-    try:
-        float(pred)
-    except:
-        return False
-    return True
+from my_common import is_correct, load_knowledge
 
 
-def get_origin_input(data):
-    return data["origin"]
+def print_failure(data, failure_id, knowledge, full_knowledge):
+    origin = data["origin"]
+    print("-------------------------------------")
+    print(f"# question_idx: {data['index']}\n")
+    print("-------------")
+    print(f"# error_id: {failure_id}\n")
+    print("-------------")
+    print(f"# origin_question:\n{origin['question']}\n")
+    print("-------------")
+    print(f"# full_knowledge:\n{full_knowledge}\n")
+    print("-------------")
+    print(f"# knowledge:\n{knowledge}\n")
+    print("-------------")
+    print(f"# origin_ans:\n{origin['answer']}\n")
+    print("-------------")
+    print(f"# pred_ans:\n{data['pred']}\n")
+    print("-------------")
+    print("# correct:\nFalse\n")
+    print("-------------------------------------")
 
-def get_pred_text(data):
-    return data["pred"]
-
-def get_math_answer(data):
-    pred_str = [s for s in [""] + re.findall(r'\$(.*?)\$', get_pred_text(data).replace("\$", "").replace("$$", "$"))][-1].replace("$", "")
-    if pred_str == "":
-        pred_str = [s for s in [""] + re.findall(r'\\\((.*?)\\\)', get_pred_text(data))][-1].replace("\(", "").replace("\)", "")
-    return pred_str
-
-
-def get_parsed_pred_answer(data):
-    pred_str = get_pred_text(data)
-    if "var1" not in pred_str or "<<" not in pred_str:
-        pred_list = [s for s in re.findall(r'-?\d+\.?\,?\d*', pred_str.replace(",", "").strip(".").split("=")[-1])]
-        if len(pred_list) == 0:
-            pred1 = -1
-        else:
-            pred1 = pred_list[-1]
-        return pred1
-    else:
-        try:
-            eqs = [s for s in re.findall(r'<<(.*?)>>', pred_str) if "=" in s]
-            eqs = sorted(eqs, key=lambda x: int(x.split("=")[0].strip("var")))
-            var_list = {eq.split("=")[0]: None for eq in eqs}
-            for eq in eqs:
-                if "=" in eq:
-                    func_str = eq.split("=")[1]
-                    for var in var_list:
-                        if var_list[var] is not None:
-                            func_str = func_str.replace(var, str(var_list[var]))
-                    if var_list[eq.split("=")[0]] is None:
-                        try:
-                            var_list[eq.split("=")[0]] = eval(func_str)
-                        except:
-                            return -1
-                elif "var" in eq:
-                    pred_str += "#### " + eq
-            if "####" in pred_str:
-                var_key = pred_str.split("####")[-1].strip().strip(".").replace("<", "").replace(">", "")
-                if var_key in var_list:
-                    return var_list[var_key]
-            last_var = var_list[list(var_list.keys())[-1]]
-            if last_var is None:
-                last_var = -1
-        except:
-            return -1
-        return last_var
-
-def judge_correct(data, idx, total_failure, knowledge, full_knowledge):
-    golden_answer_str = get_origin_input(data)["answer"].replace(",", "").strip(".").split("#### ")[-1]
-    golden_answer = round(float(golden_answer_str), 2)
-    pred = get_parsed_pred_answer(data)
-
-
-    correct = judge_error(pred) and abs(abs(round(float(pred), 2)) - abs(round(golden_answer, 2))) < 0.01
-
-    origin_answer_json = get_origin_input(data)
-    pred_str = get_pred_text(data)
-    if correct == False:
-        print("-------------------------------------")
-        print(f"# question_idx: {idx}\n")
-        print("-------------")
-        print(f"# error_id: {total_failure}\n")
-        print("-------------")
-        print(f"# origin_question:\n{origin_answer_json['question']}\n")
-        print("-------------")
-        print(f"# full_knowledge:\n{full_knowledge}\n")
-        print("-------------")
-        print(f"# knowledge:\n{knowledge}\n")
-        print("-------------")
-        print(f"# origin_ans:\n{origin_answer_json['answer']}\n")
-        print("-------------")
-        print(f"# pred_ans:\n{pred_str}\n")
-        print("-------------")
-        print(f"# correct:\n{correct}\n")
-        print("-------------------------------------")
-
-    return correct
 
 def run():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_file", type=str, help="input json file", default="outputs/qwen72b_knowledge_1_full_0.jsonl")
-    parser.add_argument("--knowledge_file", type=str, help="knowledge json file", default="data/biggsm/knowledge_1_full.jsonl")
-    parser.add_argument("--full_knowledge_file", type=str, help="knowledge json file", default="data/biggsm/knowledge_1_full.jsonl")
+    parser.add_argument("--input_file", type=str, help="input json file",
+                        default="outputs/qwen72b_knowledge_1_full_0.jsonl")
+    parser.add_argument("--knowledge_file", type=str, help="knowledge json file",
+                        default="data/biggsm/knowledge_1_full.jsonl")
+    parser.add_argument("--full_knowledge_file", type=str, help="knowledge json file",
+                        default="data/biggsm/knowledge_1_full.jsonl")
     args = parser.parse_args()
 
-
-    knowledge_dict = {}
-    if os.path.exists(args.knowledge_file):
-        print(f"loading knowledge:{args.knowledge_file}")
-        for i, data in enumerate(read_jsonl(args.knowledge_file)):
-            knowledge_dict[data["index"]] = data["knowledge"]
-
-    full_knowledge_dict = {}
-    if os.path.exists(args.full_knowledge_file):
-        print(f"loading knowledge:{args.full_knowledge_file}")
-        for i, data in enumerate(read_jsonl(args.full_knowledge_file)):
-            full_knowledge_dict[data["index"]] = data["knowledge"]
+    knowledge = load_knowledge(args.knowledge_file)
+    full_knowledge = load_knowledge(args.full_knowledge_file)
 
     total_failure = 0
     with open(args.input_file, "r") as f:
-        for line in f.readlines():
-            json_data = json.loads(line)
-            idx = json_data['index']
-            correct = judge_correct(json_data, idx, total_failure, knowledge_dict.get(idx,""), full_knowledge_dict.get(idx,""))
-            total_failure += int(correct == 0)
+        for line in f:
+            data = json.loads(line)
+            idx = data['index']
+            if not is_correct(data):
+                print_failure(data, total_failure, knowledge.get(idx, ""), full_knowledge.get(idx, ""))
+                total_failure += 1
     print(f"failure counts:{total_failure}")
-
-
 
 
 if __name__ == "__main__":

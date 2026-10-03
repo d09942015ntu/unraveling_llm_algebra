@@ -27,7 +27,7 @@ from packaging import version
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 from configuration_toytrans import ToyTransConfig
-import logging
+from transformers.utils import logging
 
 from transformers.modeling_utils import PreTrainedModel, SequenceSummary
 import torch.nn.functional as F

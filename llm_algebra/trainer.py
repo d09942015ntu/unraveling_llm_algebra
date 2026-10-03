@@ -1,175 +1,111 @@
-import json
-
-from transformers import Trainer, TrainingArguments
-from transformers import TrainerCallback
-from mydataset import TrainDataset, EvalDataset
-from evaluator  import T_evaluate
 import argparse
+from datetime import datetime
+import json
+import logging
 import os
-import glob
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
-from torch.utils.data import DataLoader
-
-from torch.utils.data import Dataset
-import pandas as pd
-import torch
-import random
-import numpy as np
-import torch
-from transformers import AutoModelForCausalLM, AutoConfig 
-import torch.nn as nn
 import sys
 
-import logging
-from datetime import datetime
+import torch
+from transformers import GPT2LMHeadModel, GPT2Tokenizer, Trainer, TrainerCallback, TrainingArguments
+from torch.utils.data import DataLoader
 
-
+from evaluator import evaluate
+from mydataset import EvalDataset, TrainDataset
+from utils import latest_checkpoint, reinitialize_weights
 
 
 def setup_logger(name, log_file, level=logging.DEBUG):
-    """Sets up a logger to output to both terminal and file."""
+    """Logger that writes plain messages to both the terminal and ``log_file``."""
     logger = logging.getLogger(name)
     logger.setLevel(level)
-
-    # Create a file handler
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setLevel(level)
-
-    # Create a console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
-
-    # Create a formatter and set it for both handlers
     formatter = logging.Formatter('%(message)s')
-    file_handler.setFormatter(formatter)
-    console_handler.setFormatter(formatter)
-
-    # Add the handlers to the logger
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-
+    for handler in [logging.FileHandler(log_file), logging.StreamHandler()]:
+        handler.setLevel(level)
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
     return logger
 
 
-def reinitialize_weights(model) -> None:
-    for module in model.modules():
-        if isinstance(module, nn.Linear):
-            nn.init.normal_(module.weight, mean=0, std=0.02)
-            if module.bias is not None:
-                nn.init.constant_(module.bias, 0)
-
 class StringOutputEvaluator(TrainerCallback):
-    def __init__(self, tokenizer,ckpt_path,dataset_dir, logger):
-        self.tokenizer = tokenizer
+    """At every logging step, reload the latest checkpoint and log its train / test accuracy."""
+
+    def __init__(self, tokenizer, ckpt_path, dataset_dir, logger):
         self.ckpt_path = ckpt_path
-        self.dataset_dir = dataset_dir
         self.logger = logger
         self.wait = 0
-        self.batch_size = 1
 
-        self.Tdataloader = DataLoader(EvalDataset(self.dataset_dir, self.tokenizer, ftype='train'),
-                                      batch_size=self.batch_size, shuffle=False)  # Multiple Batch Size requires paddings
-        self.Edataloader0 = DataLoader(EvalDataset(self.dataset_dir, self.tokenizer, ftype='test'),
-                                       batch_size=self.batch_size, shuffle=False)  # Multiple Batch Size requires paddings
-        self.Edataloader1 = DataLoader(EvalDataset(self.dataset_dir, self.tokenizer, ftype='test_com'),
-                                       batch_size=self.batch_size, shuffle=False)  # Multiple Batch Size requires paddings
-        self.Edataloader2 = DataLoader(EvalDataset(self.dataset_dir, self.tokenizer, ftype='test_ide'),
-                                       batch_size=self.batch_size, shuffle=False)  # Multiple Batch Size requires paddings
-        self.Edataloader3 = DataLoader(EvalDataset(self.dataset_dir, self.tokenizer, ftype='test_inv'),
-                                       batch_size=self.batch_size, shuffle=False)  # Multiple Batch Size requires paddings
+        def loader(ftype):
+            # Batch size 1: inputs have different lengths and are not padded.
+            return DataLoader(EvalDataset(dataset_dir, tokenizer, ftype=ftype), batch_size=1, shuffle=False)
+
+        self.train_dataloader = loader('train')
+        self.eval_com_dataloader = loader('test_com')
+        self.eval_ide_dataloader = loader('test_ide')
 
     def on_log(self, args, state, control, **kwargs):
-        #model = kwargs.get('model')
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
-
-        checkpoint_path = self.ckpt_path
-
-        ckpt_paths = glob.glob(os.path.join(checkpoint_path, "*"))
-        if len(ckpt_paths) == 0:
+        if not os.path.isdir(self.ckpt_path) or not os.listdir(self.ckpt_path):
             return
-        checkpoint_path = sorted(ckpt_paths)[-1]
-        model = GPT2LMHeadModel.from_pretrained(checkpoint_path)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = GPT2LMHeadModel.from_pretrained(latest_checkpoint(self.ckpt_path))
         model.to(device)
-        Taccuracy = T_evaluate(model, self.Tdataloader, state.log_history)
-        #Eaccuracy0 = T_evaluate(model, self.Edataloader0, state.log_history)
-        Eaccuracy1 = T_evaluate(model, self.Edataloader1, state.log_history)
-        Eaccuracy2 = T_evaluate(model, self.Edataloader2, state.log_history)
-        #Eaccuracy3 = T_evaluate(model, self.Edataloader3, state.log_history)
-        epoch=state.log_history[-1]['epoch']
-        loss=state.log_history[-1]['loss']
-        step=state.log_history[-1]['step']
-        acc_train = Taccuracy
-        log_str = json.dumps({'step':step,
-                              'epoch':epoch,
-                              'loss':loss,
-                              'acc_train': Taccuracy,
-                              #'acc_eval_all': Eaccuracy0,
-                              'acc_eval_com': Eaccuracy1,
-                              'acc_eval_ide': Eaccuracy2,
-                              #'acc_eval_inv': Eaccuracy3,
+
+        def accuracy(dataloader):
+            return evaluate(model, dataloader, limit=100, verbose=True)
+
+        last = state.log_history[-1]
+        log_str = json.dumps({'step': last['step'],
+                              'epoch': last['epoch'],
+                              'loss': last['loss'],
+                              'acc_train': accuracy(self.train_dataloader),
+                              'acc_eval_com': accuracy(self.eval_com_dataloader),
+                              'acc_eval_ide': accuracy(self.eval_ide_dataloader),
                               })
         self.logger.info(log_str)
-        print(log_str)
-        if  loss < 0.001:
+        if last['loss'] < 0.001:
             self.wait += 1
             if self.wait > 2:
                 sys.exit()
 
-    
+
 def main():
     parser = argparse.ArgumentParser(description='Train a GPT-2 model.')
-    parser.add_argument('--model_name', type=str, default='./models/gpt2',  help='Pre-trained model name or path')
-    parser.add_argument('--dataset_dir', type=str, default='./data/ide_41_11',  help='Path to the training dataset')
-    parser.add_argument('--output_dir', type=str, default='./results',  help='Path to output directory')
-
+    parser.add_argument('--model_name', type=str, default='./models/gpt2', help='Pre-trained model name or path')
+    parser.add_argument('--dataset_dir', type=str, default='./data/ide_41_11', help='Path to the training dataset')
+    parser.add_argument('--output_dir', type=str, default='./results', help='Path to output directory')
     args = parser.parse_args()
 
-
-    dataset_train_path = args.dataset_dir
-    model = GPT2LMHeadModel.from_pretrained(args.model_name,trust_remote_code=True)
+    model = GPT2LMHeadModel.from_pretrained(args.model_name, trust_remote_code=True)
     reinitialize_weights(model)
     dataset_train = TrainDataset(args.dataset_dir, GPT2Tokenizer.from_pretrained(args.model_name))
-    dataset_eval = EvalDataset(args.dataset_dir, GPT2Tokenizer.from_pretrained(args.model_name))
-
     model.resize_token_embeddings(len(dataset_train.tokenizer))
 
-    # Get the current date and time
-    current_datetime = datetime.now()
+    formatted_datetime = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = os.path.join(args.output_dir, f"{formatted_datetime}-{os.path.basename(args.dataset_dir)}")
+    ckpt_path = os.path.join(output_dir, "checkpoints")
+    os.makedirs(output_dir, exist_ok=True)
+    logger = setup_logger("my_logger", os.path.join(output_dir, "trainer.log"))
 
-    # Print the current date and time
-    formatted_datetime = current_datetime.strftime("%Y%m%d_%H%M%S")
-    output_dir = os.path.join(args.output_dir,f"{formatted_datetime}-{(os.path.basename(args.dataset_dir))}")
-    ckpt_path = os.path.join(output_dir,"checkpoints")
-
-    os.makedirs(output_dir,exist_ok=True)
-    logger = setup_logger("my_logger", os.path.join(output_dir,"trainer.log"))
-
-    logging_step=1000
-
+    logging_step = 1000
     training_args = TrainingArguments(
-        output_dir=ckpt_path, # Directory to save the training results
-        num_train_epochs=200000,        # Total number of training epochs
-        per_device_train_batch_size = 1024, # Batch size per device during training
-        save_steps=logging_step,                  # Save the model every 50 steps
-        save_total_limit=3,             # Keep a maximum of 3 checkpoints
-        logging_steps=logging_step,               # Log(output) after every 10 steps
-        learning_rate=5e-5,             # Initial learning rate
-        weight_decay=0.01               # L2 weight decay (regularization)
+        output_dir=ckpt_path,
+        num_train_epochs=200000,
+        per_device_train_batch_size=1024,
+        save_steps=logging_step,
+        save_total_limit=3,
+        logging_steps=logging_step,
+        learning_rate=5e-5,
+        weight_decay=0.01,
     )
 
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=dataset_train,
-        eval_dataset=dataset_eval,
-        tokenizer=dataset_train.tokenizer,
-        callbacks = [StringOutputEvaluator(dataset_train.tokenizer, ckpt_path, args.dataset_dir, logger)]
+        processing_class=dataset_train.tokenizer,
+        callbacks=[StringOutputEvaluator(dataset_train.tokenizer, ckpt_path, args.dataset_dir, logger)],
     )
-
-    # Train the model
     trainer.train()
 
-# Initialize Trainer
+
 if __name__ == '__main__':
     main()
